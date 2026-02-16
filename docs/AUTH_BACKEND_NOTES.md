@@ -330,8 +330,26 @@ dotnet run --project BusinessDirectory
 
 
 
+## 9. Feature: Businesses API + Swagger polish
 
+Ky feature e ben backend-in me te lehte per testim dhe integrim me frontend.
 
+- Shtuam `BusinessesController` me endpoint-at kryesore:
+  - `GET /api/businesses` (search, city, type) dhe kthen vetem bizneset `Approved`
+  - `GET /api/businesses/{id}`
+  - `POST /api/businesses` (vetem user i kyqur)
+  - `PUT /api/businesses/{id}` (vetem owner-i dhe vetem kur statusi eshte `Pending` ose `Rejected`)
+- Swagger tash ka auth me `Bearer JWT`, qe me testu endpoint-at e mbrojtur direkt ne UI.
+- U shtuan shembuj request/response ne Swagger per register, login dhe create business.
+- Refactor i modeleve/DTO:
+  - `Business.Id` dhe `Comment.BusinessId` kaluan ne `int`
+  - `UserId` u riemru ne `OwnerId` te biznesi per me qene me e qarte
+- Projektet u unifikuan ne `.NET 8` dhe paketat EF Core u pershtaten me kete.
 
+### Auth update (already included in this workstream)
 
-
+- Signup tash gjithmone krijon rol `User` (client role injorohet).
+- Email/username/password trimohen para save; edhe login trimon input-et.
+- Ka validime bazike (required, email format, minimum 8 karaktere per password).
+- Duplicate email check eshte normalized + DB ka unique index ne email.
+- JWT auth service + endpoint-at jane te lidhura.
