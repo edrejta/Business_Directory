@@ -9,6 +9,8 @@ using Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using BusinessDirectory.Domain.Enums;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Infrastructure.Services;
 
@@ -25,16 +27,19 @@ public sealed class AuthService : IAuthService
 
     public async Task<AuthResponseDto> RegisterAsync(UserCreateDto dto, CancellationToken cancellationToken = default)
     {
-        if (await _context.Users.AnyAsync(u => u.Email == dto.Email, cancellationToken))
+        var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
+        var normalizedUsername = dto.Username.Trim();
+        var normalizedPassword = dto.Password.Trim();
+        if (await _context.Users.AnyAsync(u => u.Email.ToLower() == normalizedEmail, cancellationToken))
             throw new InvalidOperationException("Një përdorues me këtë email ekziston tashmë.");
 
         var user = new User
         {
             Id = Guid.NewGuid(),
-            Username = dto.Username,
-            Email = dto.Email.ToLowerInvariant(),
-            Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-            Role = dto.Role,
+            Username = normalizedUsername,
+            Email = normalizedEmail,
+            Password = BCrypt.Net.BCrypt.HashPassword(normalizedPassword),
+            Role = UserRole.User, // always start as User; client role ignored
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -47,10 +52,12 @@ public sealed class AuthService : IAuthService
 
     public async Task<AuthResponseDto?> LoginAsync(LoginDto dto, CancellationToken cancellationToken = default)
     {
+        var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
+        var normalizedPassword = dto.Password.Trim();
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == dto.Email.ToLowerInvariant(), cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email == normalizedEmail, cancellationToken);
 
-        if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.Password))
+        if (user == null || !BCrypt.Net.BCrypt.Verify(normalizedPassword, user.Password))
             return null;
 
         return CreateAuthResponse(user);
