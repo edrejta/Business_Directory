@@ -73,8 +73,8 @@ public sealed class BusinessesController : ControllerBase
     }
 
     // GET /businesses/{id}
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<BusinessDto>> GetBusinessById(int id, CancellationToken cancellationToken)
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<BusinessDto>> GetBusinessById(Guid id, CancellationToken cancellationToken)
     {
         var business = await _context.Businesses.AsNoTracking()
             .Where(b => b.Id == id && b.Status == BusinessStatus.Approved)
@@ -145,9 +145,9 @@ public sealed class BusinessesController : ControllerBase
     }
 
     // PUT /businesses/{id} (owner)
-    [HttpPut("{id:int}")]
+    [HttpPut("{id:guid}")]
     [Authorize]
-    public async Task<ActionResult<BusinessDto>> UpdateBusiness(int id, [FromBody] BusinessUpdateDto dto, CancellationToken cancellationToken)
+    public async Task<ActionResult<BusinessDto>> UpdateBusiness(Guid id, [FromBody] BusinessUpdateDto dto, CancellationToken cancellationToken)
     {
         var ownerId = GetUserId();
         if (ownerId is null)

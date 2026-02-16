@@ -4,6 +4,6 @@ namespace BusinessDirectory.Application.Interfaces
 {
     public interface IBusinessService
     {
-        Task<int> CreateAsync(BusinessCreateDto dto, Guid userId);
+        Task<Guid> CreateAsync(BusinessCreateDto dto, Guid userId);
     }
 }

@@ -13,7 +13,7 @@ namespace Infrastructure
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
-        }
+        }   
 
         public DbSet<User> Users => Set<User>();
         public DbSet<Business> Businesses => Set<Business>();
@@ -26,7 +26,7 @@ namespace Infrastructure
             modelBuilder.Entity<Business>()
                 .HasOne(b => b.Owner)
                 .WithMany(u => u.OwnedBusinesses)
-                .HasForeignKey(b => b.UserId)
+                .HasForeignKey(b => b.OwnerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Comment>()
