@@ -15,11 +15,11 @@ namespace BusinessDirectory.Infrastructure.Services
             _db = db;
         }
 
-        public async Task<int> CreateAsync(BusinessCreateDto dto, Guid userId)
+        public async Task<Guid> CreateAsync(BusinessCreateDto dto, Guid userId)
         {
             var business = new Business
             {
-                UserId = userId,
+                OwnerId = userId,
                 BusinessName = dto.BusinessName,
                 Address = dto.Address,
                 City = dto.City,
@@ -36,7 +36,7 @@ namespace BusinessDirectory.Infrastructure.Services
             _db.Businesses.Add(business);
             await _db.SaveChangesAsync();
 
-            return business.Id; 
+            return business.Id;
         }
     }
 }
