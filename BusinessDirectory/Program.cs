@@ -13,6 +13,18 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// CORS për frontend-in (React/Vite në localhost:3000)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .WithExposedHeaders("Content-Disposition");
+    });
+});
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var useSqlite = builder.Configuration.GetValue<bool>("UseSqliteForDev") 
     || string.IsNullOrEmpty(connectionString) 
@@ -63,6 +75,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// CORS duhet para redirect-it, që preflight OPTIONS të marrë përgjigje 200 me header-at e duhur
+app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();

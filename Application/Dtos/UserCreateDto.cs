@@ -1,3 +1,5 @@
+using BusinessDirectory.Domain.Enums;
+
 namespace BusinessDirectory.Application.Dtos;
 
 /// <summary>
@@ -15,5 +17,7 @@ public sealed class UserCreateDto
     /// <summary>Fjalëkalimi – input nga klienti.</summary>
     [System.ComponentModel.DataAnnotations.Required]
     [System.ComponentModel.DataAnnotations.MinLength(8)]
-    public string Password { get; set; } = string.Empty; 
+    public string Password { get; set; } = string.Empty;
+    /// <summary>Roli – 0=User, 1=BusinessOwner. Admin (2) nuk lejohet gjatë signup – vetëm admin ekzistues mund ta caktojë.</summary>
+    public UserRole Role { get; set; } = UserRole.User;
 }

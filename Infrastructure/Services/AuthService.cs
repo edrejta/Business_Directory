@@ -33,13 +33,16 @@ public sealed class AuthService : IAuthService
         if (await _context.Users.AnyAsync(u => u.Email.ToLower() == normalizedEmail, cancellationToken))
             throw new InvalidOperationException("Një përdorues me këtë email ekziston tashmë.");
 
+        // Admin nuk lejohet gjatë signup – vetëm User ose BusinessOwner
+        var role = dto.Role == UserRole.Admin ? UserRole.User : dto.Role;
+
         var user = new User
         {
             Id = Guid.NewGuid(),
             Username = normalizedUsername,
             Email = normalizedEmail,
             Password = BCrypt.Net.BCrypt.HashPassword(normalizedPassword),
-            Role = UserRole.User, // always start as User; client role ignored
+            Role = role,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
