@@ -1,5 +1,6 @@
 using BusinessDirectory.Application.Dtos;
 using BusinessDirectory.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BusinessDirectory.Controllers;
@@ -20,6 +21,7 @@ public sealed class AuthController : ControllerBase
     /// Inputet (username, email, password, role) vijnë nga request body i frontend-it, jo nga databaza.
     /// </summary>
     /// <param name="dto">Inputet nga formularët e klientit – FromBody.</param>
+    [AllowAnonymous]
     [HttpPost("register")]
     [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -41,6 +43,7 @@ public sealed class AuthController : ControllerBase
     /// Inputet (email, password) vijnë nga request body i frontend-it, jo nga databaza.
     /// </summary>
     /// <param name="dto">Inputet nga formularët e klientit – FromBody.</param>
+    [AllowAnonymous]
     [HttpPost("login")]
     [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
