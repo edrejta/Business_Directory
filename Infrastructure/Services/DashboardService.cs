@@ -18,7 +18,13 @@ public class DashboardService : IDashboardService
         return new DashboardStatsDto
         {
             UserCount = await _context.Users.CountAsync(cancellationToken),
-            BusinessCount = await _context.Businesses.CountAsync(cancellationToken)
+            BusinessCount = await _context.Businesses.CountAsync(cancellationToken),
+
+            RecentActivityLogs = await _context.ActivityLogs
+                .Include(a => a.User) 
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(20)
+                .ToListAsync(cancellationToken)
         };
     }
 }

@@ -18,6 +18,7 @@ namespace Infrastructure
         public DbSet<User> Users => Set<User>();
         public DbSet<Business> Businesses => Set<Business>();
         public DbSet<Comment> Comments => Set<Comment>();
+        public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -38,6 +39,15 @@ namespace Infrastructure
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
+
+            modelBuilder.Entity<ActivityLog>()
+                .HasOne(a => a.User)
+                .WithMany(u => u.ActivityLogs) 
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<ActivityLog>()
+                .HasIndex(a => a.CreatedAt);
+
         }
     }
 }
