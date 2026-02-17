@@ -13,3 +13,14 @@
 /dataSources.local.xml
 # Editor-based HTTP Client requests
 /httpRequests/
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+
+# Documentation or temporary docs (opsionale)
+docs/AUTH_FINAL_NOTES.md
+docs/CORS_FIX.md
+docs/FRONTEND_AUTH_TASKS.md
+docs/ROLE_SIGNUP_TDD_TASKS.md

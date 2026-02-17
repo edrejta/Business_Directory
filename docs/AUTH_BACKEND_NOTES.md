@@ -123,8 +123,8 @@ Konfigurim (Secret, Issuer, Audience, Expiration)	✅
    - Ruaje `token` në localStorage/sessionStorage ose cookie.
    - Ruaje `role` (ose lexo nga token).
    - Bëje redirect sipas rolit:
-     - `role 0` (User) → `/dashboard-user`
-     - `role 1` (BusinessOwner) → `/dashboard-owner`
+     - `role 0` (User / përdorues) → `/dashboard-user`
+     - `role 1` (BusinessOwner / pronar biznesi) → `/dashboard-business`
      - `role 2` (Admin) → `/dashboard-admin`
 
 4. **Mbyllja e gabimit:**
@@ -146,7 +146,7 @@ Konfigurim (Secret, Issuer, Audience, Expiration)	✅
    - Ruaje `token` në localStorage/sessionStorage ose cookie.
    - Bëje redirect sipas `role`:
      - `role 0` → `/dashboard-user`
-     - `role 1` → `/dashboard-owner`
+     - `role 1` → `/dashboard-business`
      - `role 2` → `/dashboard-admin`
 
 4. **Mbyllja e gabimit:**
