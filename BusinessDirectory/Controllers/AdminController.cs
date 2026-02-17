@@ -1,8 +1,10 @@
 using BusinessDirectory.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/admin")]
+[Authorize(Roles = "Admin")] // fix#2: Restrict admin stats endpoint to Admin role only.
 public class AdminController : ControllerBase
 {
     private readonly IDashboardService _dashboardService;

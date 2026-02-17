@@ -50,7 +50,10 @@ public sealed class ExamplesOperationFilter : IOperationFilter
             });
         }
 
-        if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) && path.StartsWith("businesses"))
+        // fix#8: Match both legacy and canonical route prefixes so examples stay visible in Swagger.
+        if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) &&
+            (path.StartsWith("businesses", StringComparison.OrdinalIgnoreCase) ||
+             path.StartsWith("api/businesses", StringComparison.OrdinalIgnoreCase)))
         {
             SetRequestExample(operation, new OpenApiObject
             {
