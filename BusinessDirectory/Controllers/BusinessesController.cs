@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BusinessDirectory.Application.Dtos;
+using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Entities;
 using BusinessDirectory.Domain.Enums;
 using Infrastructure;
@@ -14,10 +15,12 @@ namespace BusinessDirectory.Controllers;
 public sealed class BusinessesController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IBusinessService _businessService;
 
-    public BusinessesController(ApplicationDbContext context)
+    public BusinessesController(ApplicationDbContext context, IBusinessService businessService)
     {
         _context = context;
+        _businessService = businessService;
     }
 
     // GET /businesses?search=&city=&type=
@@ -193,6 +196,24 @@ public sealed class BusinessesController : ControllerBase
         };
 
         return Ok(response);
+    }
+
+    
+    [HttpDelete("{id:guid}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteBusiness(Guid id, CancellationToken cancellationToken)
+    {
+        var ownerId = GetUserId();
+        if (ownerId is null)
+            return Unauthorized();
+
+        var result = await _businessService.DeleteAsync(id, ownerId.Value, cancellationToken);
+
+        if (result.NotFound) return NotFound();
+        if (result.Forbid) return Forbid();
+        if (result.Error is not null) return BadRequest(new { message = result.Error });
+
+        return NoContent();
     }
 
     private Guid? GetUserId()
