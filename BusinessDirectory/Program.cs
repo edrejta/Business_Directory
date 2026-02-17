@@ -92,6 +92,9 @@ builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSett
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IBusinessService, BusinessService>();
 
+// fix#1: Register dashboard service to prevent runtime DI failures in AdminController.
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -142,4 +145,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-

@@ -10,7 +10,8 @@ using Microsoft.EntityFrameworkCore;
 namespace BusinessDirectory.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+// fix#7: Keep a single canonical businesses endpoint to avoid duplicate create flows.
+[Route("api/businesses")]
 public sealed class BusinessesController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -20,7 +21,7 @@ public sealed class BusinessesController : ControllerBase
         _context = context;
     }
 
-    // GET /businesses?search=&city=&type=
+    // GET /api/businesses?search=&city=&type=
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<BusinessDto>>> GetBusinesses(
         [FromQuery] string? search,
@@ -72,7 +73,7 @@ public sealed class BusinessesController : ControllerBase
         return Ok(results);
     }
 
-    // GET /businesses/{id}
+    // GET /api/businesses/{id}
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<BusinessDto>> GetBusinessById(Guid id, CancellationToken cancellationToken)
     {
@@ -98,7 +99,7 @@ public sealed class BusinessesController : ControllerBase
         return business is null ? NotFound() : Ok(business);
     }
 
-    // POST /businesses (owner)
+    // POST /api/businesses (owner)
     [HttpPost]
     [Authorize]
     public async Task<ActionResult<BusinessDto>> CreateBusiness([FromBody] BusinessCreateDto dto, CancellationToken cancellationToken)
@@ -144,7 +145,7 @@ public sealed class BusinessesController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, response);
     }
 
-    // PUT /businesses/{id} (owner)
+    // PUT /api/businesses/{id} (owner)
     [HttpPut("{id:guid}")]
     [Authorize]
     public async Task<ActionResult<BusinessDto>> UpdateBusiness(Guid id, [FromBody] BusinessUpdateDto dto, CancellationToken cancellationToken)
