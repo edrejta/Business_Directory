@@ -13,8 +13,8 @@ namespace Infrastructure
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
-        }
-        
+        }   
+
         public DbSet<User> Users => Set<User>();
         public DbSet<Business> Businesses => Set<Business>();
         public DbSet<Comment> Comments => Set<Comment>();
@@ -35,9 +35,11 @@ namespace Infrastructure
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<User>()
-                .HasIndex(u => u.Email)
-                .IsUnique();
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.Property(u => u.Email).HasMaxLength(256);
+                entity.HasIndex(u => u.Email).IsUnique();
+            });
         }
     }
 }

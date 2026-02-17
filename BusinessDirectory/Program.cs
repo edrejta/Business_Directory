@@ -1,6 +1,7 @@
 using System.Text;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Application.Options;
+using BusinessDirectory.Infrastructure.Services;
 using Infrastructure;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -8,25 +9,59 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Të gjitha endpoint-et kërkojnë JWT (401 pa token). Për public: [AllowAnonymous].
+// All endpoints require JWT by default. For public endpoints use [AllowAnonymous].
 builder.Services.AddControllers(options =>
 {
-    var policy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+    var policy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+
     options.Filters.Add(new AuthorizeFilter(policy));
 });
 
-// Policy "AdminOnly" – për endpoint-et që duhet vetëm Admin (403 për jo-admin).
+// Admin policy (optional if you use [Authorize(Roles="Admin")], but it’s fine to keep)
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
 });
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
-// CORS për frontend-in (React/Vite në localhost:3000)
+builder.Services.AddEndpointsApiExplorer();
+
+// Swagger + JWT support (Authorize button)
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Business Directory API", Version = "v1" });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\""
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
+
+    // Keep this only if the class exists in your project. If it errors, remove this line.
+    options.OperationFilter<BusinessDirectory.Swagger.ExamplesOperationFilter>();
+});
+
+// CORS for frontend (React/Vite)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -38,10 +73,12 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Database: SQLite for dev/testing fallback, SQL Server if connection string is configured
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-var useSqlite = builder.Configuration.GetValue<bool>("UseSqliteForDev") 
-    || string.IsNullOrEmpty(connectionString) 
-    || !connectionString.Contains("Server=");
+var useSqlite = builder.Configuration.GetValue<bool>("UseSqliteForDev")
+    || string.IsNullOrWhiteSpace(connectionString)
+    || !connectionString.Contains("Server=", StringComparison.OrdinalIgnoreCase);
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     if (useSqlite)
@@ -50,13 +87,18 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(connectionString);
 });
 
+// JWT settings + services
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IBusinessService, BusinessService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>();
+        var jwtSettings = builder.Configuration
+            .GetSection(JwtSettings.SectionName)
+            .Get<JwtSettings>();
+
         if (jwtSettings is null)
             throw new InvalidOperationException("JWT settings nuk janë konfiguruar në appsettings.json");
 
@@ -76,23 +118,28 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    using (var scope = app.Services.CreateScope())
-    {
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        if (useSqlite)
-            db.Database.EnsureCreated();
-        else
-            db.Database.Migrate();
-    }
+    // Apply DB setup/migrations in dev
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    if (useSqlite)
+        db.Database.EnsureCreated();
+    else
+        db.Database.Migrate();
+
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// CORS duhet para redirect-it, që preflight OPTIONS të marrë përgjigje 200 me header-at e duhur
+// CORS should be before HTTPS redirection (so preflight works)
 app.UseCors("AllowFrontend");
+
 app.UseHttpsRedirection();
+
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();
+
