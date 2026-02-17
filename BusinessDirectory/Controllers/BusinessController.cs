@@ -4,39 +4,38 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
-namespace BusinessDirectory.API.Controllers
+namespace BusinessDirectory.Controllers;
+
+[ApiController]
+[Route("businesses")]
+public class BusinessController : ControllerBase
 {
-    [ApiController]
-    [Route("businesses")]
-    public class BusinessController : ControllerBase
+    private readonly BusinessDirectory.Application.Interfaces.IBusinessService _service;
+
+    public BusinessController(BusinessDirectory.Application.Interfaces.IBusinessService service)
     {
-        private readonly IBusinessService _service;
+        _service = service;
+    }
 
-        public BusinessController(IBusinessService service)
-        {
-            _service = service;
-        }
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> Create([FromBody] BusinessCreateDto dto, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
-        [HttpPost]
-        [Authorize]
-        public async Task<IActionResult> Create([FromBody] BusinessCreateDto dto)
-        {
-            if (!ModelState.IsValid)
-                return ValidationProblem(ModelState);
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
 
-            var userId = GetUserId();
-            if (userId is null)
-                return Unauthorized();
+        var created = await _service.CreateAsync(dto, userId.Value, ct);
 
-            var id = await _service.CreateAsync(dto, userId.Value);
+        return Created($"/businesses/{created.Id}", new { id = created.Id });
+    }
 
-            return Created($"/businesses/{id}", new { id });
-        }
-
-        private Guid? GetUserId()
-        {
-            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            return Guid.TryParse(userIdValue, out var userId) ? userId : null;
-        }
+    private Guid? GetUserId()
+    {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(userIdValue, out var userId) ? userId : null;
     }
 }

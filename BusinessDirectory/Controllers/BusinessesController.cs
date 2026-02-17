@@ -1,11 +1,9 @@
 using System.Security.Claims;
 using BusinessDirectory.Application.Dtos;
-using BusinessDirectory.Domain.Entities;
+using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Enums;
-using Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace BusinessDirectory.Controllers;
 
@@ -13,14 +11,13 @@ namespace BusinessDirectory.Controllers;
 [Route("api/[controller]")]
 public sealed class BusinessesController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IBusinessService _service;
 
-    public BusinessesController(ApplicationDbContext context)
+    public BusinessesController(IBusinessService service)
     {
-        _context = context;
+        _service = service;
     }
 
-    // GET /businesses?search=&city=&type=
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<BusinessDto>>> GetBusinesses(
         [FromQuery] string? search,
@@ -28,77 +25,17 @@ public sealed class BusinessesController : ControllerBase
         [FromQuery] BusinessType? type,
         CancellationToken cancellationToken)
     {
-        var query = _context.Businesses.AsNoTracking()
-            .Where(b => b.Status == BusinessStatus.Approved);
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var s = search.Trim().ToLowerInvariant();
-            query = query.Where(b =>
-                b.BusinessName.ToLower().Contains(s) ||
-                b.Description.ToLower().Contains(s));
-        }
-
-        if (!string.IsNullOrWhiteSpace(city))
-        {
-            var c = city.Trim().ToLowerInvariant();
-            query = query.Where(b => b.City.ToLower() == c);
-        }
-
-        if (type.HasValue && type.Value != BusinessType.Unknown)
-        {
-            query = query.Where(b => b.BusinessType == type.Value);
-        }
-
-        var results = await query
-            .OrderByDescending(b => b.CreatedAt)
-            .Select(b => new BusinessDto
-            {
-                Id = b.Id,
-                OwnerId = b.OwnerId,
-                BusinessName = b.BusinessName,
-                Address = b.Address,
-                City = b.City,
-                Email = b.Email,
-                PhoneNumber = b.PhoneNumber,
-                BusinessType = b.BusinessType,
-                Description = b.Description,
-                ImageUrl = b.ImageUrl,
-                Status = b.Status,
-                CreatedAt = b.CreatedAt
-            })
-            .ToListAsync(cancellationToken);
-
+        var results = await _service.GetApprovedAsync(search, city, type, cancellationToken);
         return Ok(results);
     }
 
-    // GET /businesses/{id}
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<BusinessDto>> GetBusinessById(Guid id, CancellationToken cancellationToken)
     {
-        var business = await _context.Businesses.AsNoTracking()
-            .Where(b => b.Id == id && b.Status == BusinessStatus.Approved)
-            .Select(b => new BusinessDto
-            {
-                Id = b.Id,
-                OwnerId = b.OwnerId,
-                BusinessName = b.BusinessName,
-                Address = b.Address,
-                City = b.City,
-                Email = b.Email,
-                PhoneNumber = b.PhoneNumber,
-                BusinessType = b.BusinessType,
-                Description = b.Description,
-                ImageUrl = b.ImageUrl,
-                Status = b.Status,
-                CreatedAt = b.CreatedAt
-            })
-            .FirstOrDefaultAsync(cancellationToken);
-
+        var business = await _service.GetApprovedByIdAsync(id, cancellationToken);
         return business is null ? NotFound() : Ok(business);
     }
 
-    // POST /businesses (owner)
     [HttpPost]
     [Authorize]
     public async Task<ActionResult<BusinessDto>> CreateBusiness([FromBody] BusinessCreateDto dto, CancellationToken cancellationToken)
@@ -107,44 +44,10 @@ public sealed class BusinessesController : ControllerBase
         if (ownerId is null)
             return Unauthorized();
 
-        var business = new Business
-        {
-            OwnerId = ownerId.Value,
-            BusinessName = dto.BusinessName.Trim(),
-            Address = dto.Address.Trim(),
-            City = dto.City.Trim(),
-            Email = dto.Email.Trim().ToLowerInvariant(),
-            PhoneNumber = dto.PhoneNumber.Trim(),
-            BusinessType = dto.BusinessType,
-            Description = dto.Description.Trim(),
-            ImageUrl = dto.ImageUrl.Trim(),
-            Status = BusinessStatus.Pending,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.Businesses.Add(business);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        var response = new BusinessDto
-        {
-            Id = business.Id,
-            OwnerId = business.OwnerId,
-            BusinessName = business.BusinessName,
-            Address = business.Address,
-            City = business.City,
-            Email = business.Email,
-            PhoneNumber = business.PhoneNumber,
-            BusinessType = business.BusinessType,
-            Description = business.Description,
-            ImageUrl = business.ImageUrl,
-            Status = business.Status,
-            CreatedAt = business.CreatedAt
-        };
-
-        return StatusCode(StatusCodes.Status201Created, response);
+        var created = await _service.CreateAsync(dto, ownerId.Value, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, created);
     }
 
-    // PUT /businesses/{id} (owner)
     [HttpPut("{id:guid}")]
     [Authorize]
     public async Task<ActionResult<BusinessDto>> UpdateBusiness(Guid id, [FromBody] BusinessUpdateDto dto, CancellationToken cancellationToken)
@@ -153,46 +56,13 @@ public sealed class BusinessesController : ControllerBase
         if (ownerId is null)
             return Unauthorized();
 
-        var business = await _context.Businesses
-            .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
+        var result = await _service.UpdateAsync(id, dto, ownerId.Value, cancellationToken);
 
-        if (business is null)
-            return NotFound();
+        if (result.NotFound) return NotFound();
+        if (result.Forbid) return Forbid();
+        if (result.Error is not null) return BadRequest(new { message = result.Error });
 
-        if (business.OwnerId != ownerId.Value)
-            return Forbid();
-
-        if (business.Status is not (BusinessStatus.Pending or BusinessStatus.Rejected))
-            return BadRequest(new { message = "Business mund të përditësohet vetëm kur është Pending ose Rejected." });
-
-        business.BusinessName = dto.BusinessName.Trim();
-        business.Address = dto.Address.Trim();
-        business.City = dto.City.Trim();
-        business.Email = dto.Email.Trim().ToLowerInvariant();
-        business.PhoneNumber = dto.PhoneNumber.Trim();
-        business.BusinessType = dto.BusinessType;
-        business.Description = dto.Description.Trim();
-        business.ImageUrl = dto.ImageUrl.Trim();
-
-        await _context.SaveChangesAsync(cancellationToken);
-
-        var response = new BusinessDto
-        {
-            Id = business.Id,
-            OwnerId = business.OwnerId,
-            BusinessName = business.BusinessName,
-            Address = business.Address,
-            City = business.City,
-            Email = business.Email,
-            PhoneNumber = business.PhoneNumber,
-            BusinessType = business.BusinessType,
-            Description = business.Description,
-            ImageUrl = business.ImageUrl,
-            Status = business.Status,
-            CreatedAt = business.CreatedAt
-        };
-
-        return Ok(response);
+        return Ok(result.Result);
     }
 
     private Guid? GetUserId()
