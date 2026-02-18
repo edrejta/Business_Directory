@@ -46,7 +46,7 @@ Konfigurim (Secret, Issuer, Audience, Expiration)	✅
 `BusinessDirectory/appsettings.json` | Shtuar seksion `Jwt` (Secret, Issuer, Audience, ExpirationInMinutes) 
 `BusinessDirectory/BusinessDirectory.API.csproj` | Shtuar paketa BCrypt.Net-Next, Microsoft.AspNetCore.Authentication.JwtBearer; hequr Folder Controllers 
 `Infrastructure/BusinessDirectory.Infrastructure.csproj` | Shtuar paketa: BCrypt.Net-Next, Microsoft.Extensions.Options.ConfigurationExtensions, Microsoft.IdentityModel.Tokens, System.IdentityModel.Tokens.Jwt 
-`global.json` | Ndryshuar version SDK në 10.0.102 me rollForward latestPatch 
+`global.json` | Ndryshuar version SDK në 8.0.0 me rollForward latestMajor 
 
 ---
 
@@ -54,10 +54,10 @@ Konfigurim (Secret, Issuer, Audience, Expiration)	✅
 
 
 `BCrypt.Net-Next` (4.0.3) | API, Infrastructure 
-`Microsoft.AspNetCore.Authentication.JwtBearer` (10.0.3) | API 
+`Microsoft.AspNetCore.Authentication.JwtBearer` (8.0.11) | API 
 `Microsoft.IdentityModel.Tokens` (8.2.1) | Infrastructure 
 `System.IdentityModel.Tokens.Jwt` (8.2.1) | Infrastructure 
-`Microsoft.Extensions.Options.ConfigurationExtensions` (10.0.0) | Infrastructure 
+`Microsoft.Extensions.Options.ConfigurationExtensions` (8.0.0) | Infrastructure 
 
 ---
 
