@@ -4,10 +4,10 @@ namespace BusinessDirectory.Domain.Entities;
 
 public sealed class Business
 {
-    public Guid Id { get; set; }
+    public int Id { get; set; }
 
     // FK -> User
-    public Guid OwnerId { get; set; }
+    public int OwnerId { get; set; }
     public User Owner { get; set; } = null!;
 
     public string BusinessName { get; set; } = null!;
