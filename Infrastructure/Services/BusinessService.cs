@@ -168,6 +168,38 @@ public class BusinessService : IBusinessService
         }, false, false, null);
     }
 
+    public async Task<IReadOnlyList<BusinessDto>> GetMineAsync(
+    Guid ownerId,
+    BusinessStatus? status,
+    CancellationToken ct)
+    {
+        var query = _db.Businesses.AsNoTracking()
+            .Where(b => b.OwnerId == ownerId);
+
+        if (status.HasValue)
+            query = query.Where(b => b.Status == status.Value);
+
+        return await query
+            .OrderByDescending(b => b.CreatedAt)
+            .Select(b => new BusinessDto
+            {
+                Id = b.Id,
+                OwnerId = b.OwnerId,
+                BusinessName = b.BusinessName,
+                Address = b.Address,
+                City = b.City,
+                Email = b.Email,
+                PhoneNumber = b.PhoneNumber,
+                BusinessType = b.BusinessType,
+                Description = b.Description,
+                ImageUrl = b.ImageUrl,
+                Status = b.Status,
+                CreatedAt = b.CreatedAt
+            })
+            .ToListAsync(ct);
+    }
+
+
 
     public async Task<(bool NotFound, bool Forbid, string? Error)> DeleteAsync(
     Guid id,
