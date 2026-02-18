@@ -25,4 +25,10 @@ public interface IBusinessService
         BusinessUpdateDto dto,
         Guid ownerId,
         CancellationToken ct);
+
+    Task<(bool NotFound, bool Forbid, string? Error)> DeleteAsync(
+    Guid id,
+    Guid ownerId,
+    CancellationToken ct);
+
 }

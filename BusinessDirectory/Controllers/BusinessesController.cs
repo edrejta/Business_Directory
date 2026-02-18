@@ -74,6 +74,24 @@ public sealed class BusinessesController : ControllerBase
         return Ok(result.Result);
     }
 
+    
+    [HttpDelete("{id:guid}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteBusiness(Guid id, CancellationToken cancellationToken)
+    {
+        var ownerId = GetUserId();
+        if (ownerId is null)
+            return Unauthorized();
+
+        var result = await _businessService.DeleteAsync(id, ownerId.Value, cancellationToken);
+
+        if (result.NotFound) return NotFound();
+        if (result.Forbid) return Forbid();
+        if (result.Error is not null) return BadRequest(new { message = result.Error });
+
+        return NoContent();
+    }
+
     private Guid? GetUserId()
     {
         var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
