@@ -10,3 +10,7 @@ Examples:
 ./scripts/dotnet8.sh build BusinessDirectory.sln
 ./scripts/clean.sh
 ```
+
+## Notes
+
+- Admin seeding (informal): `docs/ADMIN_SEED_INFORMAL.md`
