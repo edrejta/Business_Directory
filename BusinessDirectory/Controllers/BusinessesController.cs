@@ -18,7 +18,7 @@ public sealed class BusinessesController : ControllerBase
         _businessService = businessService;
     }
 
-    // GET /businesses?search=&city=&type=
+    
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<BusinessDto>>> GetBusinesses(
         [FromQuery] string? search,
@@ -30,7 +30,7 @@ public sealed class BusinessesController : ControllerBase
         return Ok(results);
     }
 
-    // GET /businesses/{id}
+    
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<BusinessDto>> GetBusinessById(Guid id, CancellationToken cancellationToken)
     {
@@ -38,7 +38,7 @@ public sealed class BusinessesController : ControllerBase
         return business is null ? NotFound() : Ok(business);
     }
 
-    // POST /businesses (owner)
+
     [HttpPost]
     [Authorize]
     public async Task<ActionResult<BusinessDto>> CreateBusiness([FromBody] BusinessCreateDto dto, CancellationToken cancellationToken)
@@ -51,7 +51,6 @@ public sealed class BusinessesController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, response);
     }
 
-    // PUT /businesses/{id} (owner)
     [HttpPut("{id:guid}")]
     [Authorize]
     public async Task<ActionResult<BusinessDto>> UpdateBusiness(Guid id, [FromBody] BusinessUpdateDto dto, CancellationToken cancellationToken)
@@ -74,7 +73,22 @@ public sealed class BusinessesController : ControllerBase
         return Ok(result.Result);
     }
 
-    
+    [HttpGet("mine")]
+    [Authorize]
+    public async Task<ActionResult<IReadOnlyList<BusinessDto>>> GetMine(
+        [FromQuery] BusinessStatus? status,
+        CancellationToken cancellationToken)
+    {
+        var ownerId = GetUserId();
+        if (ownerId is null)
+            return Unauthorized();
+
+        var results = await _businessService.GetMineAsync(ownerId.Value, status, cancellationToken);
+        return Ok(results);
+    }
+
+
+
     [HttpDelete("{id:guid}")]
     [Authorize]
     public async Task<IActionResult> DeleteBusiness(Guid id, CancellationToken cancellationToken)
