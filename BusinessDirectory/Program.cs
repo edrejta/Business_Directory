@@ -95,6 +95,8 @@ builder.Services.Configure<AdminSeedOptions>(builder.Configuration.GetSection(Ad
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IBusinessService, BusinessService>();
 builder.Services.AddScoped<AdminSeeder>(); // ADMIN_SEED
+builder.Services.AddScoped<ICommentService, CommentService>();
+
 
 // fix#1: Register dashboard service to prevent runtime DI failures in AdminController.
 builder.Services.AddScoped<IDashboardService, DashboardService>();
