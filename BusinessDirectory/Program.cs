@@ -2,6 +2,8 @@ using System.Text;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Application.Options;
 using BusinessDirectory.Infrastructure.Services;
+using BusinessDirectory.Options;
+using BusinessDirectory.Services;
 using Infrastructure;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -89,8 +91,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // JWT settings + services
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
+builder.Services.Configure<AdminSeedOptions>(builder.Configuration.GetSection(AdminSeedOptions.SectionName)); // ADMIN_SEED
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IBusinessService, BusinessService>();
+builder.Services.AddScoped<AdminSeeder>(); // ADMIN_SEED
 
 // fix#1: Register dashboard service to prevent runtime DI failures in AdminController.
 builder.Services.AddScoped<IDashboardService, DashboardService>();
@@ -132,6 +136,13 @@ if (app.Environment.IsDevelopment())
 
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+
+// ADMIN_SEED: Seed a single admin user on startup if none exists.
+using (var scope = app.Services.CreateScope())
+{
+    var adminSeeder = scope.ServiceProvider.GetRequiredService<AdminSeeder>();
+    await adminSeeder.SeedAsync();
 }
 
 // CORS should be before HTTPS redirection (so preflight works)
