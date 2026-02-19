@@ -25,4 +25,16 @@ public interface IBusinessService
         BusinessUpdateDto dto,
         Guid ownerId,
         CancellationToken ct);
+
+    Task<IReadOnlyList<BusinessDto>> GetMineAsync(
+    Guid ownerId,
+    BusinessStatus? status,
+    CancellationToken ct);
+
+
+    Task<(bool NotFound, bool Forbid, string? Error)> DeleteAsync(
+    Guid id,
+    Guid ownerId,
+    CancellationToken ct);
+
 }
