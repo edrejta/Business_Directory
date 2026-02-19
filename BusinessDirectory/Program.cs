@@ -96,10 +96,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IBusinessService, BusinessService>();
 builder.Services.AddScoped<AdminSeeder>(); // ADMIN_SEED
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
-builder.Services.AddScoped<IAdminBusinessService, AdminBusinessService>();
+
 builder.Services.AddScoped<IAdminReportService, AdminReportService>();
 builder.Services.AddScoped<IAdminCategoryService, AdminCategoryService>();
-
 // fix#1: Register dashboard service to prevent runtime DI failures in AdminController.
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 
