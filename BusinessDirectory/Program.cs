@@ -96,6 +96,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IBusinessService, BusinessService>();
 builder.Services.AddScoped<AdminSeeder>(); // ADMIN_SEED
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+builder.Services.AddScoped<IAdminBusinessService, AdminBusinessService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 
 
