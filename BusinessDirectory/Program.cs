@@ -1,6 +1,7 @@
 using System.Text;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Application.Options;
+using BusinessDirectory.Json;
 using Infrastructure;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -16,6 +17,11 @@ builder.Services.AddControllers(options =>
 {
     var policy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
     options.Filters.Add(new AuthorizeFilter(policy));
+})
+.AddJsonOptions(options =>
+{
+    // Pranon edhe numra për fusha string (p.sh. kur frontendi dërgon username si number) – zvogëlon 400 validation.
+    options.JsonSerializerOptions.Converters.Add(new StringFromNumberOrStringConverter());
 });
 
 // Policy "AdminOnly" – për endpoint-et që duhet vetëm Admin (403 për jo-admin).
@@ -26,15 +32,16 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// CORS për frontend-in (React/Vite në localhost:3000)
+// CORS për frontend-in (Business_Directory_Front në http://localhost:3000).
+// Pa këtë, request-et cross-origin bllokohen dhe frontendi tregon "Failed to fetch".
+// Preflight OPTIONS përgjigjet me Access-Control-Allow-Origin, -Methods, -Headers.
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    options.AddDefaultPolicy(policy =>
     {
         policy.WithOrigins("http://localhost:3000")
             .AllowAnyMethod()
-            .AllowAnyHeader()
-            .WithExposedHeaders("Content-Disposition");
+            .AllowAnyHeader();
     });
 });
 
@@ -88,8 +95,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// CORS duhet para redirect-it, që preflight OPTIONS të marrë përgjigje 200 me header-at e duhur
-app.UseCors("AllowFrontend");
+// CORS duhet para Authentication/Authorization, që preflight OPTIONS të marrë 200 me header-at e duhur
+app.UseCors();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
