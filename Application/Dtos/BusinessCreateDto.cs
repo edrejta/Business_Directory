@@ -4,7 +4,6 @@ namespace BusinessDirectory.Application.Dtos;
 
 public sealed class BusinessCreateDto
 {
-    public Guid OwnerId { get; set; }
     public string BusinessName { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
