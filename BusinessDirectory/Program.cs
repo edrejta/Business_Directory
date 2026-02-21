@@ -133,14 +133,11 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    // Apply DB setup/migrations in dev
+    // Apply migrations in dev for all providers (including SQLite).
+    // Do not mix EnsureCreated with migrations.
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-    if (useSqlite)
-        db.Database.EnsureCreated();
-    else
-        db.Database.Migrate();
+    db.Database.Migrate();
 
     app.UseSwagger();
     app.UseSwaggerUI();

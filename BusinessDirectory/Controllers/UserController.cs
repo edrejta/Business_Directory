@@ -57,15 +57,6 @@ public sealed class UsersController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPatch("{id:guid}/role")]
-    [Authorize(Policy = "AdminOnly")]
-    public async Task<IActionResult> UpdateRole(Guid id, [FromBody] UserRoleUpdateDto dto, CancellationToken ct)
-    {
-        var (notFound, result) = await _users.UpdateRoleAsync(id, dto.Role, ct);
-        if (notFound) return NotFound();
-        return Ok(result);
-    }
-
     private Guid? GetUserId()
     {
         var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);

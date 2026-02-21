@@ -18,7 +18,7 @@ public sealed class BusinessesController : ControllerBase
         _businessService = businessService;
     }
 
-    
+    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<BusinessDto>>> GetBusinesses(
         [FromQuery] string? search,
@@ -30,7 +30,7 @@ public sealed class BusinessesController : ControllerBase
         return Ok(results);
     }
 
-    
+    [AllowAnonymous]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<BusinessDto>> GetBusinessById(Guid id, CancellationToken cancellationToken)
     {
