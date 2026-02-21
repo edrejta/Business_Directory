@@ -18,6 +18,24 @@ public sealed class BusinessesController : ControllerBase
         _businessService = businessService;
     }
 
+    [AllowAnonymous]
+    [HttpGet("public")]
+    public async Task<ActionResult<IReadOnlyList<BusinessPublicDto>>> GetPublicApproved(CancellationToken cancellationToken)
+    {
+        var results = await _businessService.GetApprovedAsync(null, null, null, cancellationToken);
+
+        var publicResults = results.Select(b => new BusinessPublicDto
+        {
+            Id = b.Id,
+            BusinessName = b.BusinessName,
+            Description = b.Description,
+            City = b.City,
+            Category = b.BusinessType.ToString()
+        }).ToList();
+
+        return Ok(publicResults);
+    }
+
     
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<BusinessDto>>> GetBusinesses(
