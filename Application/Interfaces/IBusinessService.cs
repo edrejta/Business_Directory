@@ -37,4 +37,9 @@ public interface IBusinessService
     Guid ownerId,
     CancellationToken ct);
 
+    Task<BusinessDto?> GetMineByIdAsync(
+        Guid businessId,
+        Guid ownerId,
+        CancellationToken ct);
+
 }

@@ -86,6 +86,29 @@ public class BusinessService : IBusinessService
             .FirstOrDefaultAsync(ct);
     }
 
+    public async Task<BusinessDto?> GetMineByIdAsync(Guid businessId, Guid ownerId, CancellationToken ct)
+    {
+        return await _db.Businesses
+            .AsNoTracking()
+            .Where(b => b.Id == businessId && b.OwnerId == ownerId)
+            .Select(b => new BusinessDto
+            {
+                Id = b.Id,
+                OwnerId = b.OwnerId,
+                BusinessName = b.BusinessName,
+                Address = b.Address,
+                City = b.City,
+                Email = b.Email,
+                PhoneNumber = b.PhoneNumber,
+                BusinessType = b.BusinessType,
+                Description = b.Description,
+                ImageUrl = b.ImageUrl,
+                Status = b.Status,
+                CreatedAt = b.CreatedAt
+            })
+            .FirstOrDefaultAsync(ct);
+    }
+
     public async Task<BusinessDto> CreateAsync(BusinessCreateDto dto, Guid ownerId, CancellationToken ct)
     {
         var business = new Business

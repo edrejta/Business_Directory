@@ -56,6 +56,18 @@ public sealed class BusinessesController : ControllerBase
         return business is null ? NotFound() : Ok(business);
     }
 
+    [HttpGet("mine/{id:guid}")]
+    [Authorize]
+    public async Task<ActionResult<BusinessDto>> GetMyBusinessById(Guid id, CancellationToken cancellationToken)
+    {
+        var ownerId = GetUserId();
+        if (ownerId is null)
+            return Unauthorized();
+
+        var business = await _businessService.GetMineByIdAsync(id, ownerId.Value, cancellationToken);
+
+        return business is null ? NotFound() : Ok(business);
+    }
 
     [HttpPost]
     [Authorize]
