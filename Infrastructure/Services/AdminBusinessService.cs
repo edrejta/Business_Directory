@@ -1,5 +1,6 @@
 using BusinessDirectory.Application.Dtos;
 using BusinessDirectory.Application.Interfaces;
+using BusinessDirectory.Domain.Entities;
 using BusinessDirectory.Domain.Enums;
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -83,6 +84,10 @@ public sealed class AdminBusinessService : IAdminBusinessService
 
     public async Task<(BusinessDto? Result, bool NotFound, bool Conflict, string? Error)> SuspendAsync(
         Guid id,
+        Guid actorUserId,
+        string? reason,
+        string? ipAddress,
+        string? userAgent,
         CancellationToken cancellationToken = default)
     {
         var business = await _db.Businesses.FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
@@ -95,8 +100,38 @@ public sealed class AdminBusinessService : IAdminBusinessService
         if (business.Status != BusinessStatus.Approved)
             return (null, false, false, "Only approved businesses can be suspended.");
 
+        var actorIsAdmin = await _db.Users
+            .AsNoTracking()
+            .AnyAsync(u => u.Id == actorUserId && u.Role == UserRole.Admin, cancellationToken);
+        if (!actorIsAdmin)
+            return (null, false, false, "Only admins can suspend businesses.");
+
+        var cleanReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        var cleanIp = string.IsNullOrWhiteSpace(ipAddress) ? null : ipAddress.Trim();
+        var cleanUserAgent = string.IsNullOrWhiteSpace(userAgent) ? null : userAgent.Trim();
+        var now = DateTime.UtcNow;
+
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
+
         business.Status = BusinessStatus.Suspended;
+        business.SuspensionReason = cleanReason;
+
+        _db.AuditLogs.Add(new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            ActorUserId = actorUserId,
+            Action = "BUSINESS_SUSPENDED",
+            TargetUserId = business.OwnerId,
+            OldValue = BusinessStatus.Approved.ToString(),
+            NewValue = BusinessStatus.Suspended.ToString(),
+            Reason = cleanReason,
+            CreatedAt = now,
+            IpAddress = cleanIp,
+            UserAgent = cleanUserAgent
+        });
+
         await _db.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
 
         return (ToDto(business), false, false, null);
     }
@@ -116,6 +151,7 @@ public sealed class AdminBusinessService : IAdminBusinessService
             Description = b.Description,
             ImageUrl = b.ImageUrl,
             Status = b.Status,
+            SuspensionReason = b.SuspensionReason,
             CreatedAt = b.CreatedAt
         };
     }
@@ -135,6 +171,7 @@ public sealed class AdminBusinessService : IAdminBusinessService
             Description = business.Description,
             ImageUrl = business.ImageUrl,
             Status = business.Status,
+            SuspensionReason = business.SuspensionReason,
             CreatedAt = business.CreatedAt
         };
     }

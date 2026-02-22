@@ -1,0 +1,80 @@
+trigger:
+  branches:
+    include:
+      - dev
+      - main
+
+variables:
+  ACR_NAME: 'bdprojectlife'
+  ACR_LOGIN_SERVER: 'bdprojectlife.azurecr.io'
+  IMAGE_REPO: 'businessdirectory-api'
+  TAG: '$(Build.SourceVersion)'
+
+stages:
+- stage: BuildPush
+  displayName: Build & Push
+  jobs:
+  - job: build
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - checkout: self
+
+    - task: Docker@2
+      displayName: Build and push image
+      inputs:
+        command: buildAndPush
+        containerRegistry: 'acr-conn'   # <-- your ACR service connection name in Azure DevOps
+        repository: '$(IMAGE_REPO)'
+        Dockerfile: '**/Dockerfile'
+        buildContext: '.'
+        tags: |
+          $(TAG)
+
+- stage: Deploy_Staging
+  displayName: Deploy to staging
+  dependsOn: BuildPush
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/dev'))
+  jobs:
+  - deployment: deploy
+    environment: staging
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: KubernetesManifest@1
+            displayName: Apply manifests (staging)
+            inputs:
+              action: deploy
+              connectionType: azureResourceManager
+              azureSubscriptionConnection: 'aks-conn'  # <-- your AKS ARM connection name
+              namespace: staging
+              manifests: |
+                k8s/deployment.yaml
+                k8s/service.yaml
+              containers: |
+                $(ACR_LOGIN_SERVER)/$(IMAGE_REPO):$(TAG)
+
+- stage: Deploy_Prod
+  displayName: Deploy to prod
+  dependsOn: BuildPush
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: deploy
+    environment: production
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: KubernetesManifest@1
+            displayName: Apply manifests (prod)
+            inputs:
+              action: deploy
+              connectionType: azureResourceManager
+              azureSubscriptionConnection: 'aks-conn'
+              namespace: prod
+              manifests: |
+                k8s/deployment.yaml
+                k8s/service.yaml
+              containers: |
+                $(ACR_LOGIN_SERVER)/$(IMAGE_REPO):$(TAG)

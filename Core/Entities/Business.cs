@@ -25,6 +25,7 @@ public sealed class Business
     public string ImageUrl { get; set; } = null!;
 
     public BusinessStatus Status { get; set; } = BusinessStatus.Pending;
+    public string? SuspensionReason { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
