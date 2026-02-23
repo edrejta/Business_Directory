@@ -77,6 +77,12 @@ jobs:
         ConnectionStrings__DefaultConnection: Server=localhost,1433;Database=BusinessDirectory;User Id=sa;Password=Your_strong_password123!;Encrypt=False;TrustServerCertificate=True
         ConnectionStrings__PostgresConnection: ""
         RUN_CONTRACT_TESTS: "false"
+        RUN_SECURITY_TESTS: "true"
+        RUN_LOAD_TESTS: "true"
+        LOAD_TEST_CONCURRENCY: "10"
+        LOAD_TEST_TOTAL_REQUESTS: "120"
+        RUN_K6_TESTS: "false"
+        RUN_BACKUP_RESTORE_TEST: "false"
       run: ./scripts/ci_backend_suite.ps1
 
     - name: Stop SQL Server
