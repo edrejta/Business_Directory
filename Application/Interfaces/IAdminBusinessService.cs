@@ -1,4 +1,4 @@
-using BusinessDirectory.Application.Dtos;
+using BusinessDirectory.Application.Dtos.Businesses;
 using BusinessDirectory.Domain.Enums;
 
 namespace BusinessDirectory.Application.Interfaces;

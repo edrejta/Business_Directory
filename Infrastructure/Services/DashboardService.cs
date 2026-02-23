@@ -1,4 +1,4 @@
-using BusinessDirectory.Application.Dtos;
+using BusinessDirectory.Application.Dtos.Dashboard;
 using BusinessDirectory.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 

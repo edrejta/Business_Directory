@@ -1,4 +1,4 @@
-using BusinessDirectory.Application.Dtos;
+using BusinessDirectory.Application.Dtos.Admin;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Enums;
 using Infrastructure;

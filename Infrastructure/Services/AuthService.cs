@@ -1,7 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using BusinessDirectory.Application.Dtos;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Application.Options;
 using BusinessDirectory.Domain.Entities;
@@ -11,6 +10,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using BusinessDirectory.Domain.Enums;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using BusinessDirectory.Application.Dtos.User;
+using BusinessDirectory.Application.Dtos.Auth;
 
 namespace Infrastructure.Services;
 

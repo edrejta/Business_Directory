@@ -1,6 +1,6 @@
 using BusinessDirectory.Domain.Enums;
 
-namespace BusinessDirectory.Application.Dtos;
+namespace BusinessDirectory.Application.Dtos.User;
 
 /// <summary>
 /// Inputet për Signup – vijnë nga formularët e frontend-it, jo nga databaza.

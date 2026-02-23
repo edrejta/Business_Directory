@@ -1,4 +1,5 @@
-using BusinessDirectory.Application.Dtos;
+using BusinessDirectory.Application.Dtos.Auth;
+using BusinessDirectory.Application.Dtos.User;
 
 namespace BusinessDirectory.Application.Interfaces;
 

@@ -18,6 +18,7 @@ namespace Infrastructure
         public DbSet<User> Users => Set<User>();
         public DbSet<Business> Businesses => Set<Business>();
         public DbSet<Comment> Comments => Set<Comment>();
+        public DbSet<City> Cities => Set<City>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
