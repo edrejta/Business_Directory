@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using BusinessDirectory.Application.Dtos;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Enums;
@@ -69,9 +70,25 @@ public sealed class AdminBusinessesController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/suspend")]
-    public async Task<ActionResult<BusinessDto>> SuspendAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<BusinessDto>> SuspendAsync(
+        Guid id,
+        [FromBody] AdminActionReasonDto? dto,
+        CancellationToken cancellationToken)
     {
-        var result = await _businessService.SuspendAsync(id, cancellationToken);
+        var actorUserId = GetUserId();
+        if (actorUserId is null)
+            return Unauthorized();
+
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = Request.Headers["User-Agent"].ToString();
+
+        var result = await _businessService.SuspendAsync(
+            id,
+            actorUserId.Value,
+            dto?.Reason,
+            ipAddress,
+            userAgent,
+            cancellationToken);
         if (result.NotFound)
             return NotFound();
         if (result.Conflict)
@@ -80,5 +97,11 @@ public sealed class AdminBusinessesController : ControllerBase
             return BadRequest(new { message = result.Error });
 
         return Ok(result.Result);
+    }
+
+    private Guid? GetUserId()
+    {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(userIdValue, out var userId) ? userId : null;
     }
 }

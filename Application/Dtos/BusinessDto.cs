@@ -15,5 +15,6 @@ public sealed class BusinessDto
     public string Description { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
     public BusinessStatus Status { get; set; }
+    public string? SuspensionReason { get; set; }
     public DateTime CreatedAt { get; set; }
 }

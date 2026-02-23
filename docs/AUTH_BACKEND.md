@@ -91,3 +91,28 @@
 
 - **Backend:** 39 (protected endpoints → 401 pa JWT) dhe 42 (Admin → 403 për jo-admin, policy + `[Authorize(Roles = "Admin")]`) janë **100% të implementuara**.
 - **Frontend:** Duhet të dërgosh tokenin në header për të gjitha kërkesat e mbrojtura, të trajtosh 401 (logout/redirect) dhe 403 (mesazh ose redirect), dhe të ridrejtosh sipas rolit pas login/register. Pjesa tjetër (interceptor, route guard, faqe vetëm Admin) është organizim dhe UX që ti e shtin sipas nevojës.
+
+---
+
+## 6. Session Update (What I implemented now)
+
+In this session, I upgraded admin actions so they are tracked and safer:
+
+- I added audit logging support (`AuditLogs`) to track important admin actions with actor, target, old/new value, optional reason, timestamp, ip, and user-agent.
+- I added role-change auditing and reason support:
+  - `PATCH /api/admin/users/{id}/role`
+  - Optional body field: `reason`
+  - Safety checks: no self-demotion, no demotion of last admin.
+- I added audit log listing endpoint:
+  - `GET /api/admin/audit-logs?take=100`
+- I added admin delete-user endpoint with audit logging:
+  - `DELETE /api/admin/users/{id}?reason=...`
+  - Safety checks: no self-delete, no delete of last admin, and no delete when user still owns businesses/comments.
+- I added business suspension reason support:
+  - `PATCH /api/admin/businesses/{id}/suspend`
+  - Optional body: `{ "reason": "..." }`
+  - Saves `SuspensionReason` on business and writes audit log action `BUSINESS_SUSPENDED`.
+
+Database changes I introduced:
+- `AuditLogs` table
+- `Businesses.SuspensionReason` column
