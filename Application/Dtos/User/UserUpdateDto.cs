@@ -1,6 +1,6 @@
 using BusinessDirectory.Domain.Enums;
 
-namespace BusinessDirectory.Application.Dtos;
+namespace BusinessDirectory.Application.Dtos.User;
 
 public sealed class UserUpdateDto
 {

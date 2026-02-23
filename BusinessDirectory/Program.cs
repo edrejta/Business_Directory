@@ -99,7 +99,7 @@ builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<IAdminBusinessService, AdminBusinessService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IUserService, UserService>();
-
+builder.Services.AddScoped<ICityService, CityService>();
 
 
 builder.Services.AddScoped<IAdminReportService, AdminReportService>();

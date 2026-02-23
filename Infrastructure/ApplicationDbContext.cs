@@ -19,6 +19,7 @@ namespace Infrastructure
         public DbSet<Business> Businesses => Set<Business>();
         public DbSet<Comment> Comments => Set<Comment>();
         public DbSet<Favorite> Favorites => Set<Favorite>();
+        public DbSet<City> Cities => Set<City>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

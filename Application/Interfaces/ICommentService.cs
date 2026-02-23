@@ -1,4 +1,4 @@
-﻿using BusinessDirectory.Application.Dtos;
+﻿using BusinessDirectory.Application.Dtos.Comment;
 
 namespace BusinessDirectory.Application.Interfaces;
 
