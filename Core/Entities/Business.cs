@@ -34,6 +34,7 @@ public sealed class Business
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+    public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
 
     public string WebsiteUrl { get; set; } = null!;
 }
