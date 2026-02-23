@@ -18,10 +18,26 @@ namespace Infrastructure
         public DbSet<User> Users => Set<User>();
         public DbSet<Business> Businesses => Set<Business>();
         public DbSet<Comment> Comments => Set<Comment>();
+        public DbSet<Favorite> Favorites => Set<Favorite>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Favorite>()
+                .HasKey(f => new { f.UserId, f.BusinessId });
+
+            modelBuilder.Entity<Favorite>()
+                .HasOne(f => f.User)
+                .WithMany(u => u.Favorites)
+                .HasForeignKey(f => f.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Favorite>()
+                .HasOne(f => f.Business)
+                .WithMany(b => b.Favorites)
+                .HasForeignKey(f => f.BusinessId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Business>()
                 .HasOne(b => b.Owner)
