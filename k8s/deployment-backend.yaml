@@ -21,24 +21,3 @@ spec:
           env:
             - name: ASPNETCORE_URLS
               value: http://+:8080
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: bd-frontend
-  namespace: dev
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: bd-frontend
-  template:
-    metadata:
-      labels:
-        app: bd-frontend
-    spec:
-      containers:
-        - name: bd-frontend
-          image: bdprojectlife.azurecr.io/bd-frontend:latest
-          ports:
-            - containerPort: 3000

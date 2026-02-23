@@ -18,13 +18,13 @@ jobs:
       - name: Build and push backend image
         run: |
           az acr login --name ${{ secrets.ACR_NAME }}
-          docker build -f BusinessDirectory/Dockerfile -t ${{ secrets.ACR_LOGIN_SERVER }}/bd-backend:${{ github.sha }} .
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/bd-backend:${{ github.sha }}
+          docker build -f BusinessDirectory/Dockerfile -t ${{ secrets.ACR_LOGIN_SERVER }}/businessdirectory-api:${{ github.sha }} .
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/businessdirectory-api:${{ github.sha }}
 
       - name: Deploy to AKS
         run: |
           az aks get-credentials -g ${{ secrets.AKS_RESOURCE_GROUP }} -n ${{ secrets.AKS_CLUSTER_NAME }} --overwrite-existing
           kubectl apply -f k8s/service.yaml
-          kubectl apply -f k8s/deployment.yaml
-          kubectl -n dev set image deployment/bd-backend bd-backend=${{ secrets.ACR_LOGIN_SERVER }}/bd-backend:${{ github.sha }}
+          kubectl apply -f k8s/deployment-backend.yaml
+          kubectl -n dev set image deployment/bd-backend bd-backend=${{ secrets.ACR_LOGIN_SERVER }}/businessdirectory-api:${{ github.sha }}
           kubectl -n dev rollout status deployment/bd-backend
