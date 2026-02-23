@@ -1,4 +1,5 @@
 ﻿using BusinessDirectory.Application.Dtos;
+using BusinessDirectory.Application.Dtos.Businesses;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Entities;
 using BusinessDirectory.Domain.Enums;
@@ -59,7 +60,8 @@ public class BusinessService : IBusinessService
                 Description = b.Description,
                 ImageUrl = b.ImageUrl,
                 Status = b.Status,
-                CreatedAt = b.CreatedAt
+                CreatedAt = b.CreatedAt,
+                BusinessNumber = b.BusinesssNumber
             })
             .ToListAsync(ct);
     }
@@ -81,7 +83,32 @@ public class BusinessService : IBusinessService
                 Description = b.Description,
                 ImageUrl = b.ImageUrl,
                 Status = b.Status,
-                CreatedAt = b.CreatedAt
+                CreatedAt = b.CreatedAt,
+                BusinessNumber = b.BusinesssNumber
+            })
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<BusinessDto?> GetMineByIdAsync(Guid businessId, Guid ownerId, CancellationToken ct)
+    {
+        return await _db.Businesses
+            .AsNoTracking()
+            .Where(b => b.Id == businessId && b.OwnerId == ownerId)
+            .Select(b => new BusinessDto
+            {
+                Id = b.Id,
+                OwnerId = b.OwnerId,
+                BusinessName = b.BusinessName,
+                Address = b.Address,
+                City = b.City,
+                Email = b.Email,
+                PhoneNumber = b.PhoneNumber,
+                BusinessType = b.BusinessType,
+                Description = b.Description,
+                ImageUrl = b.ImageUrl,
+                Status = b.Status,
+                CreatedAt = b.CreatedAt,
+                BusinessNumber = b.BusinesssNumber
             })
             .FirstOrDefaultAsync(ct);
     }
@@ -100,7 +127,9 @@ public class BusinessService : IBusinessService
             Description = dto.Description.Trim(),
             ImageUrl = dto.ImageUrl.Trim(),
             Status = BusinessStatus.Pending,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            BusinesssNumber = dto.BusinessNumber,
+            WebsiteUrl = string.Empty
         };
 
         _db.Businesses.Add(business);
@@ -119,7 +148,8 @@ public class BusinessService : IBusinessService
             Description = business.Description,
             ImageUrl = business.ImageUrl,
             Status = business.Status,
-            CreatedAt = business.CreatedAt
+            CreatedAt = business.CreatedAt,
+            BusinessNumber = business.BusinesssNumber
         };
     }
 
@@ -164,7 +194,8 @@ public class BusinessService : IBusinessService
             Description = business.Description,
             ImageUrl = business.ImageUrl,
             Status = business.Status,
-            CreatedAt = business.CreatedAt
+            CreatedAt = business.CreatedAt,
+            BusinessNumber = business.BusinesssNumber
         }, false, false, null);
     }
 
@@ -194,12 +225,11 @@ public class BusinessService : IBusinessService
                 Description = b.Description,
                 ImageUrl = b.ImageUrl,
                 Status = b.Status,
-                CreatedAt = b.CreatedAt
+                CreatedAt = b.CreatedAt,
+                BusinessNumber = b.BusinesssNumber
             })
             .ToListAsync(ct);
     }
-
-
 
     public async Task<(bool NotFound, bool Forbid, string? Error)> DeleteAsync(
     Guid id,
@@ -222,7 +252,4 @@ public class BusinessService : IBusinessService
 
         return (false, false, null);
     }
-
-
-
 }

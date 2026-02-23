@@ -1,20 +1,24 @@
 using BusinessDirectory.Domain.Enums;
 
-namespace BusinessDirectory.Application.Dtos;
+namespace BusinessDirectory.Application.Dtos.Businesses;
 
-public sealed class BusinessDto
+public sealed class BusinessCreateDto
 {
-    public Guid Id { get; set; }
-    public Guid OwnerId { get; set; }
     public string BusinessName { get; set; } = string.Empty;
+    
     public string Address { get; set; } = string.Empty;
+    
     public string City { get; set; } = string.Empty;
+    
     public string Email { get; set; } = string.Empty;
+    
     public string PhoneNumber { get; set; } = string.Empty;
+    
     public BusinessType BusinessType { get; set; }
+    
     public string Description { get; set; } = string.Empty;
+    
     public string ImageUrl { get; set; } = string.Empty;
-    public BusinessStatus Status { get; set; }
-    public string? SuspensionReason { get; set; }
-    public DateTime CreatedAt { get; set; }
+    
+    public string BusinessNumber { get; set; } = string.Empty;
 }

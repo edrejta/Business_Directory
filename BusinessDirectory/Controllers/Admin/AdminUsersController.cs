@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BusinessDirectory.Application.Dtos;
+using BusinessDirectory.Application.Dtos.User;
 using BusinessDirectory.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

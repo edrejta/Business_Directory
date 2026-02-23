@@ -1,7 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using BusinessDirectory.Application.Dtos;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Application.Options;
 using BusinessDirectory.Domain.Entities;
@@ -11,6 +10,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using BusinessDirectory.Domain.Enums;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using BusinessDirectory.Application.Dtos.User;
+using BusinessDirectory.Application.Dtos.Auth;
 
 namespace Infrastructure.Services;
 
@@ -29,7 +30,7 @@ public sealed class AuthService : IAuthService
     {
         var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
         var normalizedUsername = dto.Username.Trim();
-        var normalizedPassword = dto.Password.Trim();
+        var password = dto.Password;
         if (await _context.Users.AnyAsync(u => u.Email.ToLower() == normalizedEmail, cancellationToken))
             throw new InvalidOperationException("Një përdorues me këtë email ekziston tashmë.");
 
@@ -41,7 +42,7 @@ public sealed class AuthService : IAuthService
             Id = Guid.NewGuid(),
             Username = normalizedUsername,
             Email = normalizedEmail,
-            Password = BCrypt.Net.BCrypt.HashPassword(normalizedPassword),
+            Password = BCrypt.Net.BCrypt.HashPassword(password),
             Role = role,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -56,11 +57,11 @@ public sealed class AuthService : IAuthService
     public async Task<AuthResponseDto?> LoginAsync(LoginDto dto, CancellationToken cancellationToken = default)
     {
         var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
-        var normalizedPassword = dto.Password.Trim();
+        var password = dto.Password;
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Email == normalizedEmail, cancellationToken);
 
-        if (user == null || !BCrypt.Net.BCrypt.Verify(normalizedPassword, user.Password))
+        if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
             return null;
 
         return CreateAuthResponse(user);

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BusinessDirectory.Application.Dtos;
+using BusinessDirectory.Application.Dtos.Businesses;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -56,6 +57,18 @@ public sealed class BusinessesController : ControllerBase
         return business is null ? NotFound() : Ok(business);
     }
 
+    [HttpGet("mine/{id:guid}")]
+    [Authorize]
+    public async Task<ActionResult<BusinessDto>> GetMyBusinessById(Guid id, CancellationToken cancellationToken)
+    {
+        var ownerId = GetUserId();
+        if (ownerId is null)
+            return Unauthorized();
+
+        var business = await _businessService.GetMineByIdAsync(id, ownerId.Value, cancellationToken);
+
+        return business is null ? NotFound() : Ok(business);
+    }
 
     [HttpPost]
     [Authorize]
@@ -104,7 +117,6 @@ public sealed class BusinessesController : ControllerBase
         var results = await _businessService.GetMineAsync(ownerId.Value, status, cancellationToken);
         return Ok(results);
     }
-
 
 
     [HttpDelete("{id:guid}")]

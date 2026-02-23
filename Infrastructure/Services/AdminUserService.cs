@@ -1,4 +1,5 @@
 using BusinessDirectory.Application.Dtos;
+using BusinessDirectory.Application.Dtos.User;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Entities;
 using BusinessDirectory.Domain.Enums;

@@ -30,8 +30,7 @@ namespace BusinessDirectory.Infrastructure.Migrations
 
                     b.Property<string>("Action")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("ActorUserId")
                         .HasColumnType("uniqueidentifier");
@@ -40,35 +39,28 @@ namespace BusinessDirectory.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("IpAddress")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NewValue")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("OldValue")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Reason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("TargetUserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("UserAgent")
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ActorUserId");
-
-                    b.HasIndex("CreatedAt");
 
                     b.HasIndex("TargetUserId");
 
@@ -91,6 +83,10 @@ namespace BusinessDirectory.Infrastructure.Migrations
 
                     b.Property<int>("BusinessType")
                         .HasColumnType("int");
+
+                    b.Property<string>("BusinesssNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("City")
                         .IsRequired()
@@ -122,14 +118,38 @@ namespace BusinessDirectory.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("SuspensionReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("WebsiteUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerId");
 
                     b.ToTable("Businesses");
+                });
+
+            modelBuilder.Entity("BusinessDirectory.Domain.Entities.City", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Cities");
                 });
 
             modelBuilder.Entity("BusinessDirectory.Domain.Entities.Comment", b =>
@@ -161,6 +181,24 @@ namespace BusinessDirectory.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Comments");
+                });
+
+            modelBuilder.Entity("BusinessDirectory.Domain.Entities.Favorite", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("UserId", "BusinessId");
+
+                    b.HasIndex("BusinessId");
+
+                    b.ToTable("Favorites");
                 });
 
             modelBuilder.Entity("BusinessDirectory.Domain.Entities.User", b =>
@@ -248,14 +286,37 @@ namespace BusinessDirectory.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("BusinessDirectory.Domain.Entities.Favorite", b =>
+                {
+                    b.HasOne("BusinessDirectory.Domain.Entities.Business", "Business")
+                        .WithMany("Favorites")
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BusinessDirectory.Domain.Entities.User", "User")
+                        .WithMany("Favorites")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("BusinessDirectory.Domain.Entities.Business", b =>
                 {
                     b.Navigation("Comments");
+
+                    b.Navigation("Favorites");
                 });
 
             modelBuilder.Entity("BusinessDirectory.Domain.Entities.User", b =>
                 {
                     b.Navigation("Comments");
+
+                    b.Navigation("Favorites");
 
                     b.Navigation("OwnedBusinesses");
                 });

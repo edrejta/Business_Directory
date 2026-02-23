@@ -1,4 +1,4 @@
-namespace BusinessDirectory.Application.Dtos;
+namespace BusinessDirectory.Application.Dtos.Auth;
 
 /// <summary>
 /// Inputet për Login – vijnë nga formularët e frontend-it, jo nga databaza.

@@ -1,4 +1,5 @@
 ﻿using BusinessDirectory.Application.Dtos;
+using BusinessDirectory.Application.Dtos.Businesses;
 using BusinessDirectory.Domain.Enums;
 
 namespace BusinessDirectory.Application.Interfaces;
@@ -27,14 +28,17 @@ public interface IBusinessService
         CancellationToken ct);
 
     Task<IReadOnlyList<BusinessDto>> GetMineAsync(
-    Guid ownerId,
-    BusinessStatus? status,
-    CancellationToken ct);
-
+        Guid ownerId,
+        BusinessStatus? status,
+        CancellationToken ct);
 
     Task<(bool NotFound, bool Forbid, string? Error)> DeleteAsync(
-    Guid id,
-    Guid ownerId,
-    CancellationToken ct);
+        Guid id,
+        Guid ownerId,
+        CancellationToken ct);
 
+    Task<BusinessDto?> GetMineByIdAsync(
+        Guid businessId,
+        Guid ownerId,
+        CancellationToken ct);
 }

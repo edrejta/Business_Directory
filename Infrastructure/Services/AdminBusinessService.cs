@@ -1,4 +1,5 @@
 using BusinessDirectory.Application.Dtos;
+using BusinessDirectory.Application.Dtos.Businesses;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Entities;
 using BusinessDirectory.Domain.Enums;
@@ -152,7 +153,8 @@ public sealed class AdminBusinessService : IAdminBusinessService
             ImageUrl = b.ImageUrl,
             Status = b.Status,
             SuspensionReason = b.SuspensionReason,
-            CreatedAt = b.CreatedAt
+            CreatedAt = b.CreatedAt,
+            BusinessNumber = b.BusinesssNumber
         };
     }
 
@@ -172,7 +174,8 @@ public sealed class AdminBusinessService : IAdminBusinessService
             ImageUrl = business.ImageUrl,
             Status = business.Status,
             SuspensionReason = business.SuspensionReason,
-            CreatedAt = business.CreatedAt
+            CreatedAt = business.CreatedAt,
+            BusinessNumber = business.BusinesssNumber
         };
     }
 }

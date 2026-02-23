@@ -1,4 +1,4 @@
-namespace BusinessDirectory.Application.Dtos;
+namespace BusinessDirectory.Application.Dtos.Comment;
 
 public sealed class CommentDto
 {
