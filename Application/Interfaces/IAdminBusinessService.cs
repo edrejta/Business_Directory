@@ -1,3 +1,4 @@
+using BusinessDirectory.Application.Dtos;
 using BusinessDirectory.Application.Dtos.Businesses;
 using BusinessDirectory.Domain.Enums;
 
@@ -10,5 +11,11 @@ public interface IAdminBusinessService
     Task<BusinessDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<(BusinessDto? Result, bool NotFound, bool Conflict, string? Error)> ApproveAsync(Guid id, CancellationToken cancellationToken = default);
     Task<(BusinessDto? Result, bool NotFound, bool Conflict, string? Error)> RejectAsync(Guid id, CancellationToken cancellationToken = default);
-    Task<(BusinessDto? Result, bool NotFound, bool Conflict, string? Error)> SuspendAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<(BusinessDto? Result, bool NotFound, bool Conflict, string? Error)> SuspendAsync(
+        Guid id,
+        Guid actorUserId,
+        string? reason,
+        string? ipAddress,
+        string? userAgent,
+        CancellationToken cancellationToken = default);
 }

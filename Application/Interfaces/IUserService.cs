@@ -1,5 +1,5 @@
-﻿using BusinessDirectory.Application.Dtos.User;
-using BusinessDirectory.Domain.Enums;
+using BusinessDirectory.Application.Dtos;
+using BusinessDirectory.Application.Dtos.User;
 
 
 namespace BusinessDirectory.Application.Interfaces;
@@ -7,10 +7,8 @@ namespace BusinessDirectory.Application.Interfaces;
 public interface IUserService
 {
     Task<UserDto?> GetMeAsync(Guid userId, CancellationToken ct);
-    
     Task<UserDto?> GetByIdAsync(Guid id, CancellationToken ct);
     
-    Task<(bool NotFound, UserDto? Result)> UpdateRoleAsync(Guid userId, UserRole role, CancellationToken ct);
 
     Task<(bool NotFound, bool Forbid, string? Error, UserDto? Result)> UpdateAsync(
         Guid id,

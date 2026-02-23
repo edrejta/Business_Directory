@@ -13,7 +13,7 @@ public sealed class Business
 
     public string BusinessName { get; set; } = null!;
     
-    public string BusinesssNumber { get; set; } = null!;
+    public string BusinesssNumber { get; set; } = string.Empty;
     
     public string Address { get; set; } = null!;
     
@@ -30,11 +30,12 @@ public sealed class Business
     public string ImageUrl { get; set; } = null!;
 
     public BusinessStatus Status { get; set; } = BusinessStatus.Pending;
+    public string? SuspensionReason { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
 
-    public string WebsiteUrl { get; set; } = null!;
+    public string WebsiteUrl { get; set; } = string.Empty;
 }

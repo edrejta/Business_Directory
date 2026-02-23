@@ -1,6 +1,5 @@
 ﻿using BusinessDirectory.Application.Dtos.User;
 using BusinessDirectory.Application.Interfaces;
-using BusinessDirectory.Domain.Enums;
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -82,25 +81,4 @@ public sealed class UserService : IUserService
         });
     }
 
-    public async Task<(bool NotFound, UserDto? Result)> UpdateRoleAsync(Guid userId, UserRole role, CancellationToken ct)
-    {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
-        if (user is null)
-            return (true, null);
-
-        user.Role = role;
-        user.UpdatedAt = DateTime.UtcNow;
-
-        await _db.SaveChangesAsync(ct);
-
-        return (false, new UserDto
-        {
-            Id = user.Id,
-            Username = user.Username,
-            Email = user.Email,
-            Role = user.Role,
-            CreatedAt = user.CreatedAt,
-            UpdatedAt = user.UpdatedAt
-        });
-    }
 }

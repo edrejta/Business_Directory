@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bd-backend
+  namespace: dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bd-backend
+  template:
+    metadata:
+      labels:
+        app: bd-backend
+    spec:
+      containers:
+        - name: bd-backend
+          image: bdprojectlife.azurecr.io/businessdirectory-api:placeholder
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_URLS
+              value: http://+:8080
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: bd-api-secrets
+                  key: ConnectionStrings__DefaultConnection

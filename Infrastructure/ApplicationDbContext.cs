@@ -18,27 +18,13 @@ namespace Infrastructure
         public DbSet<User> Users => Set<User>();
         public DbSet<Business> Businesses => Set<Business>();
         public DbSet<Comment> Comments => Set<Comment>();
+        public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<Favorite> Favorites => Set<Favorite>();
         public DbSet<City> Cities => Set<City>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
-            modelBuilder.Entity<Favorite>()
-                .HasKey(f => new { f.UserId, f.BusinessId });
-
-            modelBuilder.Entity<Favorite>()
-                .HasOne(f => f.User)
-                .WithMany(u => u.Favorites)
-                .HasForeignKey(f => f.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<Favorite>()
-                .HasOne(f => f.Business)
-                .WithMany(b => b.Favorites)
-                .HasForeignKey(f => f.BusinessId)
-                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Business>()
                 .HasOne(b => b.Owner)
@@ -52,10 +38,44 @@ namespace Infrastructure
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<AuditLog>(entity =>
+            {
+                entity.HasOne(a => a.ActorUser)
+                    .WithMany()
+                    .HasForeignKey(a => a.ActorUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(a => a.TargetUser)
+                    .WithMany()
+                    .HasForeignKey(a => a.TargetUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
             modelBuilder.Entity<User>(entity =>
             {
                 entity.Property(u => u.Email).HasMaxLength(256);
                 entity.HasIndex(u => u.Email).IsUnique();
+            });
+
+            modelBuilder.Entity<City>(entity =>
+            {
+                entity.Property(c => c.Name).HasMaxLength(128);
+                entity.HasIndex(c => c.Name).IsUnique();
+            });
+
+            modelBuilder.Entity<Favorite>(entity =>
+            {
+                entity.HasKey(f => new { f.UserId, f.BusinessId });
+
+                entity.HasOne(f => f.User)
+                    .WithMany(u => u.Favorites)
+                    .HasForeignKey(f => f.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(f => f.Business)
+                    .WithMany(b => b.Favorites)
+                    .HasForeignKey(f => f.BusinessId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }
