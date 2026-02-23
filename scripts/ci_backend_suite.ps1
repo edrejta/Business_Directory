@@ -37,7 +37,7 @@ if ([string]::IsNullOrWhiteSpace($env:ConnectionStrings__DefaultConnection)) {
 $env:UseSqliteForDev = "false"
 
 dotnet build BusinessDirectory.sln | Out-Null
-$api = Start-Process dotnet -ArgumentList "run --no-build --project BusinessDirectory/BusinessDirectory.API.csproj --urls $BaseUrl" -PassThru -WindowStyle Hidden
+$api = Start-Process dotnet -ArgumentList "run --no-build --project BusinessDirectory/BusinessDirectory.API.csproj --urls $BaseUrl" -PassThru
 try {
   Assert (Wait-Health $BaseUrl) "API nuk u ngrit ne kohe."
 
