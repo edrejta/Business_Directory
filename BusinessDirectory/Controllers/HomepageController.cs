@@ -12,7 +12,6 @@ using System.Text.Json;
 namespace BusinessDirectory.Controllers;
 
 [ApiController]
-[AllowAnonymous]
 [Route("")]
 public sealed class HomepageController : ControllerBase
 {
@@ -38,6 +37,7 @@ public sealed class HomepageController : ControllerBase
     }
 
     [HttpGet("categories")]
+    [AllowAnonymous]
     public async Task<ActionResult<List<string>>> GetCategories(CancellationToken cancellationToken)
     {
         var categories = (await _context.Businesses
@@ -54,6 +54,7 @@ public sealed class HomepageController : ControllerBase
     }
 
     [HttpGet("locations")]
+    [AllowAnonymous]
     public async Task<ActionResult<List<string>>> GetLocations(CancellationToken cancellationToken)
     {
         var locations = await _context.Businesses
@@ -69,6 +70,7 @@ public sealed class HomepageController : ControllerBase
     }
 
     [HttpGet("featured-businesses")]
+    [AllowAnonymous]
     public async Task<ActionResult<List<PublicBusinessDto>>> GetFeaturedBusinesses([FromQuery] int limit = 20, CancellationToken cancellationToken = default)
     {
         limit = Math.Clamp(limit, 1, 100);
@@ -81,6 +83,7 @@ public sealed class HomepageController : ControllerBase
     }
 
     [HttpGet("recommendations")]
+    [AllowAnonymous]
     public async Task<ActionResult<List<PublicBusinessDto>>> GetRecommendations(
         [FromQuery] int limit = 20,
         [FromQuery] string? category = null,
@@ -148,6 +151,7 @@ public sealed class HomepageController : ControllerBase
     }
 
     [HttpGet("promotions")]
+    [AllowAnonymous]
     public async Task<ActionResult<List<DealDto>>> GetPromotions([FromQuery] string? category = null, CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow.Date;
@@ -268,6 +272,7 @@ public sealed class HomepageController : ControllerBase
     }
 
     [HttpGet("reviews")]
+    [AllowAnonymous]
     public async Task<ActionResult<List<ReviewDto>>> GetReviews([FromQuery] int limit = 50, CancellationToken cancellationToken = default)
     {
         limit = Math.Clamp(limit, 1, 100);
@@ -289,6 +294,7 @@ public sealed class HomepageController : ControllerBase
     }
 
     [HttpPost("subscribe")]
+    [AllowAnonymous]
     [EnableRateLimiting("subscribe")]
     public async Task<ActionResult<MessageResponseDto>> Subscribe([FromBody] SubscribeRequestDto request, CancellationToken cancellationToken)
     {
@@ -315,6 +321,7 @@ public sealed class HomepageController : ControllerBase
     }
 
     [HttpGet("search")]
+    [AllowAnonymous]
     public async Task<ActionResult<List<PublicBusinessDto>>> Search([FromQuery] SearchQueryDto query, CancellationToken cancellationToken)
     {
         query.Limit = Math.Clamp(query.Limit, 1, 100);
@@ -456,6 +463,7 @@ public sealed class HomepageController : ControllerBase
     }
 
     [HttpGet("businesses/{id:guid}")]
+    [AllowAnonymous]
     public async Task<ActionResult<PublicBusinessDetailDto>> GetBusinessDetails(Guid id, CancellationToken cancellationToken)
     {
         var item = await _context.Businesses
@@ -512,6 +520,7 @@ public sealed class HomepageController : ControllerBase
     }
 
     [HttpGet("opendays")]
+    [AllowAnonymous]
     public async Task<ActionResult<BusinessOpenDaysDto>> GetOpenDays([FromQuery] Guid businessId, CancellationToken cancellationToken)
     {
         var business = await _context.Businesses
@@ -663,9 +672,9 @@ public sealed class HomepageController : ControllerBase
         };
     }
 
-    private static bool TryGetCityCoordinates(string? city, out CoordinatesDto coordinates)
+    private static bool TryGetCityCoordinates(string? city, out CoordinatesDto? coordinates)
     {
-        coordinates = default!;
+        coordinates = null;
         if (string.IsNullOrWhiteSpace(city))
             return false;
 
