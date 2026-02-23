@@ -21,6 +21,12 @@ function Assert($condition, $message) {
   if (-not $condition) { throw $message }
 }
 
+function EnvFlag([string]$name, [bool]$defaultValue = $true) {
+  $raw = [Environment]::GetEnvironmentVariable($name)
+  if ([string]::IsNullOrWhiteSpace($raw)) { return $defaultValue }
+  return -not ($raw.Trim().ToLowerInvariant() -in @("0", "false", "no", "off"))
+}
+
 $originalAspNetEnv = $env:ASPNETCORE_ENVIRONMENT
 $originalDatabaseProvider = $env:DatabaseProvider
 $originalDefaultConnection = $env:ConnectionStrings__DefaultConnection
@@ -65,8 +71,12 @@ try {
   }
   Assert $got401 "Login para verifikimit duhet te jape 401."
 
-  # Contract test with Dredd
-  & "$PSScriptRoot/contract_test_dredd.ps1"
+  # Contract test with Dredd (optional in CI)
+  if (EnvFlag "RUN_CONTRACT_TESTS" $true) {
+    & "$PSScriptRoot/contract_test_dredd.ps1"
+  } else {
+    Write-Host "Skipping Dredd contract tests (RUN_CONTRACT_TESTS=false)."
+  }
 
   # Security tests
   $security = & "$PSScriptRoot/security_hardening_tests.ps1" -BaseUrl $BaseUrl | ConvertFrom-Json
