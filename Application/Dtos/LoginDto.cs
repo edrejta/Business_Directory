@@ -1,12 +1,15 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace BusinessDirectory.Application.Dtos;
 
-/// <summary>
-/// Inputet për Login – vijnë nga formularët e frontend-it, jo nga databaza.
-/// </summary>
 public sealed class LoginDto
 {
-    /// <summary>Email – input nga klienti.</summary>
+    [Required]
+    [EmailAddress]
+    [StringLength(255)]
     public string Email { get; set; } = string.Empty;
-    /// <summary>Fjalëkalimi – input nga klienti.</summary>
+
+    [Required]
+    [StringLength(128, MinimumLength = 1)]
     public string Password { get; set; } = string.Empty;
 }

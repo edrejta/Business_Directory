@@ -25,9 +25,16 @@ public sealed class Business
     public string ImageUrl { get; set; } = null!;
 
     public BusinessStatus Status { get; set; } = BusinessStatus.Pending;
+    public bool Featured { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+    public int OpenDaysMask { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+    public ICollection<Promotion> Promotions { get; set; } = new List<Promotion>();
+    public ICollection<Report> Reports { get; set; } = new List<Report>();
 }

@@ -1,0 +1,10 @@
+color: true
+dry-run: null
+hookfiles: ./tests/contract/hooks.js
+language: nodejs
+server: ''
+server-wait: 5
+init: false
+custom:
+  apiDescriptionPath: ./docs/openapi.yaml
+  apiBaseUrl: http://127.0.0.1:5003

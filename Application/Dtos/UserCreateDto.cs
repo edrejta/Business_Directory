@@ -1,23 +1,23 @@
 using BusinessDirectory.Domain.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace BusinessDirectory.Application.Dtos;
 
-/// <summary>
-/// Inputet për Signup – vijnë nga formularët e frontend-it, jo nga databaza.
-/// </summary>
 public sealed class UserCreateDto
 {
-    /// <summary>Emri i përdoruesit – input nga klienti.</summary>
-    [System.ComponentModel.DataAnnotations.Required]
+    [Required]
+    [StringLength(100, MinimumLength = 1)]
     public string Username { get; set; } = string.Empty;
-    /// <summary>Email – input nga klienti.</summary>
-    [System.ComponentModel.DataAnnotations.Required]
-    [System.ComponentModel.DataAnnotations.EmailAddress]
+
+    [Required]
+    [EmailAddress]
+    [StringLength(255)]
     public string Email { get; set; } = string.Empty;
-    /// <summary>Fjalëkalimi – input nga klienti.</summary>
-    [System.ComponentModel.DataAnnotations.Required]
-    [System.ComponentModel.DataAnnotations.MinLength(8)]
+
+    [Required]
+    [StringLength(128, MinimumLength = 8)]
     public string Password { get; set; } = string.Empty;
-    /// <summary>Roli – 0=User, 1=BusinessOwner. Admin (2) nuk lejohet gjatë signup – vetëm admin ekzistues mund ta caktojë.</summary>
+
+    [Range(0, 1)]
     public UserRole Role { get; set; } = UserRole.User;
 }

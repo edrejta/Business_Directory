@@ -1,0 +1,748 @@
+openapi: 3.0.3
+info:
+  title: Business Directory Backend API
+  version: 1.0.0
+  description: API contract consumed by current frontend (auth, homepage, admin dashboard).
+servers:
+  - url: http://localhost:5003
+    description: Local development
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+  - name: Homepage
+  - name: Admin
+  - name: System
+paths:
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation or duplicate email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/auth/verify-email:
+    post:
+      tags: [Auth]
+      summary: Verify email address
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+      responses:
+        '200':
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/auth/resend-verification:
+    post:
+      tags: [Auth]
+      summary: Resend verification email
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendVerificationRequest'
+      responses:
+        '200':
+          description: Response is generic for anti-enumeration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /categories:
+    get:
+      tags: [Homepage]
+      summary: List business categories
+      security: []
+      responses:
+        '200':
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /locations:
+    get:
+      tags: [Homepage]
+      summary: List available locations
+      security: []
+      responses:
+        '200':
+          description: Locations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /featured-businesses:
+    get:
+      tags: [Homepage]
+      summary: Featured businesses for carousel
+      security: []
+      responses:
+        '200':
+          description: Featured list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Business'
+  /recommendations:
+    get:
+      tags: [Homepage]
+      summary: Personalized or generic recommendations
+      security: []
+      responses:
+        '200':
+          description: Recommendation list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Business'
+  /promotions:
+    get:
+      tags: [Homepage]
+      summary: Promotions/deals list
+      security: []
+      responses:
+        '200':
+          description: Deals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Deal'
+  /reviews:
+    get:
+      tags: [Homepage]
+      summary: Testimonials list
+      security: []
+      responses:
+        '200':
+          description: Reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+  /subscribe:
+    post:
+      tags: [Homepage]
+      summary: Subscribe to newsletter
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscribeRequest'
+      responses:
+        '200':
+          description: Subscribed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search:
+    get:
+      tags: [Homepage]
+      summary: Search businesses
+      security: []
+      parameters:
+        - in: query
+          name: keyword
+          schema: { type: string, minLength: 1, maxLength: 120 }
+        - in: query
+          name: category
+          description: Comma-separated categories
+          schema: { type: string }
+        - in: query
+          name: location
+          description: Comma-separated locations
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: onlyWithCoordinates
+          schema: { type: boolean, default: false }
+        - in: query
+          name: bbox
+          description: Bounding box as minLng,minLat,maxLng,maxLat
+          schema: { type: string }
+        - in: query
+          name: lat
+          schema: { type: number, minimum: -90, maximum: 90 }
+        - in: query
+          name: lng
+          schema: { type: number, minimum: -180, maximum: 180 }
+        - in: query
+          name: radiusKm
+          schema: { type: number, minimum: 0.1, maximum: 300 }
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [distance, rating, createdAt]
+      responses:
+        '200':
+          description: Matching businesses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Business'
+
+  /api/admin/dashboard:
+    get:
+      tags: [Admin]
+      summary: Dashboard summary metrics
+      responses:
+        '200':
+          description: Metrics and recent activity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDashboard'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/users:
+    get:
+      tags: [Admin]
+      summary: List users
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Users list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/reports/summary:
+    get:
+      tags: [Admin]
+      summary: Report overview
+      responses:
+        '200':
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/categories:
+    get:
+      tags: [Admin]
+      summary: Category stats
+      responses:
+        '200':
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminCategory'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/businesses:
+    get:
+      tags: [Admin]
+      summary: List businesses
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [Pending, Approved, Rejected, Suspended]
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Businesses list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminBusiness'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/businesses/pending:
+    get:
+      tags: [Admin]
+      summary: List only pending businesses
+      responses:
+        '200':
+          description: Pending businesses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminBusiness'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/businesses/{id}:
+    get:
+      tags: [Admin]
+      summary: Get business by id
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+      responses:
+        '200':
+          description: Business details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBusiness'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/admin/businesses/{id}/approve:
+    patch:
+      tags: [Admin]
+      summary: Approve business
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+      responses:
+        '200':
+          description: Updated business
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBusiness'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/admin/businesses/{id}/reject:
+    patch:
+      tags: [Admin]
+      summary: Reject business
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+      responses:
+        '200':
+          description: Updated business
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBusiness'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/admin/businesses/{id}/suspend:
+    patch:
+      tags: [Admin]
+      summary: Suspend business
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+      responses:
+        '200':
+          description: Updated business
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBusiness'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: Service health
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    BusinessId:
+      in: path
+      name: id
+      required: true
+      example: 11111111-1111-1111-1111-111111111111
+      schema:
+        type: string
+        minLength: 1
+    Page:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      in: query
+      name: pageSize
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+  responses:
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          example: Nuk ke të drejtë.
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          example: Success
+
+    RegisterRequest:
+      type: object
+      required: [username, email, password, role]
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+        role:
+          type: integer
+          enum: [0, 1]
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 1
+          maxLength: 128
+
+    AuthResponse:
+      type: object
+      required: [token, id, username, email, role]
+      properties:
+        token:
+          type: string
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: integer
+          enum: [0, 1, 2]
+
+    Coordinates:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+
+    Business:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        logo: { type: string, format: uri }
+        description: { type: string }
+        rating: { type: number, format: float, minimum: 0, maximum: 5 }
+        phone: { type: string }
+        email: { type: string, format: email }
+        website: { type: string, format: uri }
+        category: { type: string }
+        location: { type: string }
+        featured: { type: boolean }
+        badges:
+          type: array
+          items: { type: string }
+        coordinates:
+          allOf:
+            - $ref: '#/components/schemas/Coordinates'
+          nullable: true
+        distance:
+          type: number
+          format: float
+          description: Distance in meters when lat/lng search is used
+          nullable: true
+
+    Deal:
+      type: object
+      required: [id, title, description]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        expiresAt: { type: string, format: date }
+
+    Review:
+      type: object
+      required: [id, reviewerName, rating, comment]
+      properties:
+        id: { type: string }
+        reviewerName: { type: string }
+        rating: { type: number, format: float, minimum: 0, maximum: 5 }
+        comment: { type: string }
+
+    SubscribeRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    VerifyEmailRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          minLength: 1
+
+    ResendVerificationRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    DashboardMetrics:
+      type: object
+      required: [totalBusinesses, pendingBusinesses, approvedBusinesses, totalUsers]
+      properties:
+        totalBusinesses: { type: integer, minimum: 0 }
+        pendingBusinesses: { type: integer, minimum: 0 }
+        approvedBusinesses: { type: integer, minimum: 0 }
+        totalUsers: { type: integer, minimum: 0 }
+
+    DashboardActivity:
+      type: object
+      required: [label, value]
+      properties:
+        label: { type: string }
+        value: { type: integer, minimum: 0 }
+
+    AdminDashboard:
+      type: object
+      required: [metrics, recentActivity]
+      properties:
+        metrics:
+          $ref: '#/components/schemas/DashboardMetrics'
+        recentActivity:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardActivity'
+
+    AdminUser:
+      type: object
+      required: [id, email, role]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        fullName: { type: string }
+        email: { type: string, format: email }
+        role:
+          oneOf:
+            - type: integer
+            - type: string
+        createdAt: { type: string, format: date-time }
+        status: { type: string }
+
+    ReportSummary:
+      type: object
+      required: [totalReports, openReports, resolvedReports, flaggedBusinesses]
+      properties:
+        totalReports: { type: integer, minimum: 0 }
+        openReports: { type: integer, minimum: 0 }
+        resolvedReports: { type: integer, minimum: 0 }
+        flaggedBusinesses: { type: integer, minimum: 0 }
+        reportsByReason:
+          type: array
+          items:
+            type: object
+            required: [reason, count]
+            properties:
+              reason: { type: string }
+              count: { type: integer, minimum: 0 }
+
+    AdminCategory:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        businessesCount: { type: integer, minimum: 0 }
+
+    AdminBusiness:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        ownerId: { type: string }
+        city: { type: string }
+        businessType: { type: string }
+        status:
+          type: string
+          enum: [Pending, Approved, Rejected, Suspended]
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    HealthStatus:
+      type: object
+      properties:
+        status: { type: string, example: ok }
+        timestamp: { type: string, format: date-time }
+        version: { type: string, example: 1.0.0 }

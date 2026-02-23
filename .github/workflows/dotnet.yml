@@ -28,3 +28,56 @@ jobs:
 
     - name: Test
       run: dotnet test --configuration Release --no-build --verbosity normal
+
+  backend-qa:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install Dredd
+      run: npm i -g dredd
+
+    - name: Start SQL Server
+      run: docker compose -f docker-compose.sqlserver.yml up -d
+
+    - name: Wait SQL Server
+      run: |
+        for i in {1..60}; do
+          if docker exec business-directory-sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "Your_strong_password123!" -Q "SELECT 1" -C >/dev/null 2>&1; then
+            echo "SQL Server ready"
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "SQL Server not ready"
+        exit 1
+
+    - name: Restore
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Run Backend QA Suite
+      shell: pwsh
+      env:
+        ASPNETCORE_ENVIRONMENT: Development
+        DatabaseProvider: sqlserver
+        ConnectionStrings__DefaultConnection: Server=localhost,1433;Database=BusinessDirectory;User Id=sa;Password=Your_strong_password123!;Encrypt=False;TrustServerCertificate=True
+        ConnectionStrings__PostgresConnection: ""
+      run: ./scripts/ci_backend_suite.ps1
+
+    - name: Stop SQL Server
+      if: always()
+      run: docker compose -f docker-compose.sqlserver.yml down -v
