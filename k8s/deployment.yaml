@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: bd-backend
-          image: bdprojectlife.azurecr.io/bd-backend:latest
+          image: bdprojectlife.azurecr.io/businessdirectory-api:latest
           ports:
             - containerPort: 8080
           env:
