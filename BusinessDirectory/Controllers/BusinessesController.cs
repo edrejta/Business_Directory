@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using BusinessDirectory.Application.Dtos;
+using BusinessDirectory.Application.Dtos.Businesses;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -116,7 +116,6 @@ public sealed class BusinessesController : ControllerBase
         var results = await _businessService.GetMineAsync(ownerId.Value, status, cancellationToken);
         return Ok(results);
     }
-
 
 
     [HttpDelete("{id:guid}")]

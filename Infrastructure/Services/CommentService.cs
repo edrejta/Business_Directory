@@ -1,4 +1,4 @@
-﻿using BusinessDirectory.Application.Dtos;
+﻿using BusinessDirectory.Application.Dtos.Comment;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Entities;
 using Infrastructure;

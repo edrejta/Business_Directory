@@ -1,12 +1,13 @@
 using BusinessDirectory.Domain.Enums;
 
-namespace BusinessDirectory.Application.Dtos;
+namespace BusinessDirectory.Application.Dtos.User;
 
-public sealed class AuthResponseDto
+public sealed class UserDto
 {
-    public string Token { get; set; } = string.Empty;
     public Guid Id { get; set; }
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public UserRole Role { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }

@@ -1,4 +1,4 @@
-﻿using BusinessDirectory.Application.Dtos;
+﻿using BusinessDirectory.Application.Dtos.Businesses;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Entities;
 using BusinessDirectory.Domain.Enums;
@@ -123,7 +123,8 @@ public class BusinessService : IBusinessService
             Description = dto.Description.Trim(),
             ImageUrl = dto.ImageUrl.Trim(),
             Status = BusinessStatus.Pending,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            BusinesssNumber = dto.BusinessNumber
         };
 
         _db.Businesses.Add(business);
@@ -142,7 +143,8 @@ public class BusinessService : IBusinessService
             Description = business.Description,
             ImageUrl = business.ImageUrl,
             Status = business.Status,
-            CreatedAt = business.CreatedAt
+            CreatedAt = business.CreatedAt,
+            BusinessNumber = business.BusinesssNumber
         };
     }
 
@@ -222,8 +224,6 @@ public class BusinessService : IBusinessService
             .ToListAsync(ct);
     }
 
-
-
     public async Task<(bool NotFound, bool Forbid, string? Error)> DeleteAsync(
     Guid id,
     Guid ownerId,
@@ -245,7 +245,4 @@ public class BusinessService : IBusinessService
 
         return (false, false, null);
     }
-
-
-
 }
