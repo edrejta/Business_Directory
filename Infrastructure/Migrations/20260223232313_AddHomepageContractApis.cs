@@ -16,7 +16,7 @@ namespace BusinessDirectory.Infrastructure.Migrations
                 table: "Businesses",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 127);
 
             migrationBuilder.CreateTable(
                 name: "NewsletterSubscribers",

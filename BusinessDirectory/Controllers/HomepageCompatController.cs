@@ -79,9 +79,13 @@ public sealed class HomepageCompatController : ControllerBase
                 b.Description,
                 b.BusinessType,
                 b.City,
-                b.PhoneNumber
+                b.PhoneNumber,
+                b.CreatedAt
             })
             .ToListAsync(ct);
+
+        if (items.Count == 0)
+            return Ok(new List<HomeBusinessDto>());
 
         var ratings = await _db.Comments
             .AsNoTracking()
@@ -90,18 +94,16 @@ public sealed class HomepageCompatController : ControllerBase
             .Select(g => new { BusinessId = g.Key, Rating = g.Average(x => (double)x.Rate) })
             .ToDictionaryAsync(x => x.BusinessId, x => x.Rating, ct);
 
-        return Ok(items.Select(x => new HomeBusinessDto
-        {
-            Id = x.Id,
-            Name = x.BusinessName,
-            Logo = x.ImageUrl,
-            Description = x.Description,
-            Rating = ratings.GetValueOrDefault(x.Id, 0),
-            Category = x.BusinessType.ToString(),
-            Location = x.City,
-            Phone = x.PhoneNumber,
-            Coordinates = null
-        }).ToList());
+        return Ok(items.Select(x => MapHomeBusiness(
+            x.Id,
+            x.BusinessName,
+            x.ImageUrl,
+            x.Description,
+            ratings.GetValueOrDefault(x.Id, 0),
+            x.BusinessType.ToString(),
+            x.City,
+            x.PhoneNumber,
+            x.CreatedAt)).ToList());
     }
 
     [HttpGet("search")]
@@ -124,12 +126,12 @@ public sealed class HomepageCompatController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
-            var s = keyword.Trim().ToLowerInvariant();
+            var s = $"%{keyword.Trim()}%";
             query = query.Where(b =>
-                b.BusinessName.ToLower().Contains(s) ||
-                b.Description.ToLower().Contains(s) ||
-                b.City.ToLower().Contains(s) ||
-                b.Address.ToLower().Contains(s));
+                EF.Functions.Like(b.BusinessName, s) ||
+                EF.Functions.Like(b.Description, s) ||
+                EF.Functions.Like(b.City, s) ||
+                EF.Functions.Like(b.Address, s));
         }
 
         if (!string.IsNullOrWhiteSpace(category))
@@ -155,10 +157,49 @@ public sealed class HomepageCompatController : ControllerBase
                 .Select(x => x.ToLowerInvariant())
                 .Distinct()
                 .ToList();
-            query = query.Where(b => cities.Contains(b.City.ToLower()));
+            query = query.Where(b => cities.Contains((b.City ?? string.Empty).ToLower()));
+        }
+
+        if (string.Equals(sortBy, "rating", StringComparison.OrdinalIgnoreCase))
+        {
+            var response = await query
+                .Select(b => new
+                {
+                    b.Id,
+                    b.BusinessName,
+                    b.ImageUrl,
+                    b.Description,
+                    b.BusinessType,
+                    b.City,
+                    b.PhoneNumber,
+                    b.CreatedAt,
+                    Rating = _db.Comments
+                        .Where(c => c.BusinessId == b.Id)
+                        .Select(c => (double?)c.Rate)
+                        .Average() ?? 0d
+                })
+                .OrderByDescending(x => x.Rating)
+                .ThenByDescending(x => x.CreatedAt)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .ToListAsync(ct);
+
+            return Ok(response.Select(x => MapHomeBusiness(
+                x.Id,
+                x.BusinessName,
+                x.ImageUrl,
+                x.Description,
+                x.Rating,
+                x.BusinessType.ToString(),
+                x.City,
+                x.PhoneNumber,
+                x.CreatedAt)).ToList());
         }
 
         var projected = await query
+            .OrderByDescending(b => b.CreatedAt)
+            .Skip((page - 1) * limit)
+            .Take(limit)
             .Select(b => new
             {
                 b.Id,
@@ -172,6 +213,9 @@ public sealed class HomepageCompatController : ControllerBase
             })
             .ToListAsync(ct);
 
+        if (projected.Count == 0)
+            return Ok(new List<HomeBusinessDto>());
+
         var ratings = await _db.Comments
             .AsNoTracking()
             .Where(c => projected.Select(x => x.Id).Contains(c.BusinessId))
@@ -179,32 +223,16 @@ public sealed class HomepageCompatController : ControllerBase
             .Select(g => new { BusinessId = g.Key, Rating = g.Average(x => (double)x.Rate) })
             .ToDictionaryAsync(x => x.BusinessId, x => x.Rating, ct);
 
-        var response = projected.Select(x => new HomeBusinessDto
-            {
-                Id = x.Id,
-                Name = x.BusinessName,
-                Logo = x.ImageUrl,
-                Description = x.Description,
-                Rating = ratings.GetValueOrDefault(x.Id, 0),
-                Category = x.BusinessType.ToString(),
-                Location = x.City,
-                Phone = x.PhoneNumber,
-                Coordinates = null,
-                CreatedAt = x.CreatedAt
-            })
-            .ToList();
-
-        if (string.Equals(sortBy, "rating", StringComparison.OrdinalIgnoreCase))
-            response = response.OrderByDescending(x => x.Rating).ToList();
-        else
-            response = response.OrderByDescending(x => x.CreatedAt).ToList();
-
-        response = response
-            .Skip((page - 1) * limit)
-            .Take(limit)
-            .ToList();
-
-        return Ok(response);
+        return Ok(projected.Select(x => MapHomeBusiness(
+            x.Id,
+            x.BusinessName,
+            x.ImageUrl,
+            x.Description,
+            ratings.GetValueOrDefault(x.Id, 0),
+            x.BusinessType.ToString(),
+            x.City,
+            x.PhoneNumber,
+            x.CreatedAt)).ToList());
     }
 
     [HttpGet("promotions")]
@@ -267,5 +295,31 @@ public sealed class HomepageCompatController : ControllerBase
     {
         public double Lat { get; set; }
         public double Lng { get; set; }
+    }
+
+    private static HomeBusinessDto MapHomeBusiness(
+        Guid id,
+        string name,
+        string? logo,
+        string? description,
+        double rating,
+        string? category,
+        string? location,
+        string? phone,
+        DateTime createdAt)
+    {
+        return new HomeBusinessDto
+        {
+            Id = id,
+            Name = name,
+            Logo = logo,
+            Description = description,
+            Rating = rating,
+            Category = category,
+            Location = location,
+            Phone = phone,
+            Coordinates = null,
+            CreatedAt = createdAt
+        };
     }
 }

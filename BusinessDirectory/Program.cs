@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -87,7 +86,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     if (useSqlite)
     {
-        options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
         options.UseSqlite("Data Source=BusinessDirectory.db");
     }
     else
@@ -152,12 +150,15 @@ if (app.Environment.IsDevelopment())
         {
             db.Database.Migrate();
         }
-        catch (SqliteException)
+        catch (SqliteException ex)
         {
-            // SQL Server-generated migrations can fail on SQLite (e.g., nvarchar(max)).
-            // For local development fallback to model-based schema creation.
-            db.Database.EnsureDeleted();
-            db.Database.EnsureCreated();
+            // Keep local data safe: only bootstrap schema if the DB doesn't exist yet.
+            if (!db.Database.CanConnect())
+                db.Database.EnsureCreated();
+            else
+                throw new InvalidOperationException(
+                    "SQLite migration failed. Fix the migration/provider mismatch instead of recreating the database.",
+                    ex);
         }
     }
     else

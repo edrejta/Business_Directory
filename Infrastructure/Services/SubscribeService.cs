@@ -27,7 +27,19 @@ public sealed class SubscribeService : ISubscribeService
                 Email = email,
                 CreatedAt = DateTime.UtcNow
             });
-            await _db.SaveChangesAsync(ct);
+            try
+            {
+                await _db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException)
+            {
+                // Concurrent subscribe request may win the unique index race.
+                var nowExists = await _db.NewsletterSubscribers
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Email == email, ct);
+                if (!nowExists)
+                    throw;
+            }
         }
 
         return new SubscribeResponseDto { Message = "Success" };

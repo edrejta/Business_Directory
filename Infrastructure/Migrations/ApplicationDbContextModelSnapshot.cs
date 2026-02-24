@@ -131,6 +131,8 @@ namespace BusinessDirectory.Infrastructure.Migrations
 
                     b.HasIndex("OwnerId");
 
+                    b.HasIndex("Status", "CreatedAt");
+
                     b.ToTable("Businesses");
                 });
 
@@ -180,6 +182,8 @@ namespace BusinessDirectory.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BusinessId");
+
+                    b.HasIndex("BusinessId", "CreatedAt");
 
                     b.HasIndex("UserId");
 
@@ -269,6 +273,8 @@ namespace BusinessDirectory.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BusinessId");
+
+                    b.HasIndex("BusinessId", "IsActive", "ExpiresAt", "CreatedAt");
 
                     b.ToTable("Promotions");
                 });

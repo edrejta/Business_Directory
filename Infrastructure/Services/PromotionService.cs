@@ -68,9 +68,19 @@ public sealed class PromotionService : IPromotionService
         if (business.OwnerId != actorUserId)
             return (null, false, true, null);
 
+        var title = request.Title?.Trim() ?? string.Empty;
+        var description = request.Description?.Trim() ?? string.Empty;
+        if (title.Length == 0)
+            return (null, false, false, "Title eshte i detyrueshem.");
+        if (description.Length == 0)
+            return (null, false, false, "Description eshte i detyrueshem.");
+
         var category = NormalizeCategory(request.Category);
         if (category is null)
             return (null, false, false, "Category duhet te jete Discounts, FlashSales ose EarlyAccess.");
+
+        if (request.ExpiresAt.HasValue && request.ExpiresAt.Value <= DateTime.UtcNow)
+            return (null, false, false, "ExpiresAt duhet te jete ne te ardhmen.");
 
         if (request.OriginalPrice.HasValue &&
             request.DiscountedPrice.HasValue &&
@@ -83,8 +93,8 @@ public sealed class PromotionService : IPromotionService
         {
             Id = Guid.NewGuid(),
             BusinessId = request.BusinessId,
-            Title = request.Title.Trim(),
-            Description = request.Description.Trim(),
+            Title = title,
+            Description = description,
             Category = category,
             OriginalPrice = request.OriginalPrice,
             DiscountedPrice = request.DiscountedPrice,

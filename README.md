@@ -2,13 +2,13 @@
 
 ## Build (Dotnet 10)
 
-This repo is pinned to .NET 10 via `global.json`. If your environment sets `MSBuildSDKsPath` to another SDK, use the wrapper script to force the .NET 10 SDK during builds.
+This repo is pinned to .NET 10 via `global.json`.
 
 Examples:
 
 ```bash
-./scripts/dotnet8.sh build BusinessDirectory.sln
-./scripts/clean.sh
+dotnet build BusinessDirectory.sln
+dotnet clean BusinessDirectory.sln -v minimal
 ```
 
 ## Notes

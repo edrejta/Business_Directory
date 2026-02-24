@@ -34,11 +34,17 @@ namespace Infrastructure
                 .HasForeignKey(b => b.OwnerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Business>()
+                .HasIndex(b => new { b.Status, b.CreatedAt });
+
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.User)
                 .WithMany(u => u.Comments)
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Comment>()
+                .HasIndex(c => new { c.BusinessId, c.CreatedAt });
 
             modelBuilder.Entity<AuditLog>(entity =>
             {
@@ -86,6 +92,7 @@ namespace Infrastructure
                 entity.Property(p => p.Category).HasMaxLength(32);
                 entity.Property(p => p.OriginalPrice).HasPrecision(18, 2);
                 entity.Property(p => p.DiscountedPrice).HasPrecision(18, 2);
+                entity.HasIndex(p => new { p.BusinessId, p.IsActive, p.ExpiresAt, p.CreatedAt });
 
                 entity.HasOne(p => p.Business)
                     .WithMany(b => b.Promotions)
