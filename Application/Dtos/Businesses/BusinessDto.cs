@@ -29,4 +29,6 @@ public sealed class BusinessDto
     public DateTime CreatedAt { get; set; }
 
     public string BusinessNumber { get; set; } = string.Empty;
+
+    public bool IsFavorite { get; set; }
 }

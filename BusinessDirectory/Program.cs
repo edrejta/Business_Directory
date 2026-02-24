@@ -100,6 +100,7 @@ builder.Services.AddScoped<IAdminBusinessService, AdminBusinessService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICityService, CityService>();
+builder.Services.AddScoped<IFavoriteService, FavoriteService>();
 
 
 builder.Services.AddScoped<IAdminReportService, AdminReportService>();
