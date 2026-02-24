@@ -2,7 +2,7 @@ name: CD Backend
 
 on:
   push:
-    branches: [dev, main, audit-admin-backend-only]
+    branches: [dev, main, added-probs]
 
 jobs:
   deploy:
