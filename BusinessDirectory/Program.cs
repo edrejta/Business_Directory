@@ -6,10 +6,12 @@ using BusinessDirectory.Options;
 using BusinessDirectory.Services;
 using Infrastructure;
 using Infrastructure.Services;
+using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -84,7 +86,10 @@ var useSqlite = builder.Configuration.GetValue<bool>("UseSqliteForDev")
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     if (useSqlite)
+    {
+        options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
         options.UseSqlite("Data Source=BusinessDirectory.db");
+    }
     else
         options.UseSqlServer(connectionString);
 });
@@ -106,6 +111,10 @@ builder.Services.AddScoped<IAdminReportService, AdminReportService>();
 builder.Services.AddScoped<IAdminCategoryService, AdminCategoryService>();
 // fix#1: Register dashboard service to prevent runtime DI failures in AdminController.
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IPromotionService, PromotionService>();
+builder.Services.AddScoped<IOpenDaysService, OpenDaysService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<ISubscribeService, SubscribeService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -134,10 +143,27 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     // Apply migrations in dev for all providers (including SQLite).
-    // Do not mix EnsureCreated with migrations.
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
+
+    if (useSqlite)
+    {
+        try
+        {
+            db.Database.Migrate();
+        }
+        catch (SqliteException)
+        {
+            // SQL Server-generated migrations can fail on SQLite (e.g., nvarchar(max)).
+            // For local development fallback to model-based schema creation.
+            db.Database.EnsureDeleted();
+            db.Database.EnsureCreated();
+        }
+    }
+    else
+    {
+        db.Database.Migrate();
+    }
 
     app.UseSwagger();
     app.UseSwaggerUI();

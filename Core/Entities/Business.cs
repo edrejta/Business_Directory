@@ -33,9 +33,11 @@ public sealed class Business
     public string? SuspensionReason { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public int OpenDaysMask { get; set; } = 127;
 
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
+    public ICollection<Promotion> Promotions { get; set; } = new List<Promotion>();
 
     public string WebsiteUrl { get; set; } = string.Empty;
 }

@@ -21,6 +21,8 @@ namespace Infrastructure
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<Favorite> Favorites => Set<Favorite>();
         public DbSet<City> Cities => Set<City>();
+        public DbSet<Promotion> Promotions => Set<Promotion>();
+        public DbSet<NewsletterSubscriber> NewsletterSubscribers => Set<NewsletterSubscriber>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -76,6 +78,25 @@ namespace Infrastructure
                     .WithMany(b => b.Favorites)
                     .HasForeignKey(f => f.BusinessId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Promotion>(entity =>
+            {
+                entity.Property(p => p.Title).HasMaxLength(120);
+                entity.Property(p => p.Category).HasMaxLength(32);
+                entity.Property(p => p.OriginalPrice).HasPrecision(18, 2);
+                entity.Property(p => p.DiscountedPrice).HasPrecision(18, 2);
+
+                entity.HasOne(p => p.Business)
+                    .WithMany(b => b.Promotions)
+                    .HasForeignKey(p => p.BusinessId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<NewsletterSubscriber>(entity =>
+            {
+                entity.Property(n => n.Email).HasMaxLength(256);
+                entity.HasIndex(n => n.Email).IsUnique();
             });
         }
     }
