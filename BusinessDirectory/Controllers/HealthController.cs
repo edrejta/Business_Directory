@@ -9,6 +9,7 @@ namespace BusinessDirectory.API.Controllers
         // fix#3: Keep health check public so uptime probes do not need JWT tokens.
         [AllowAnonymous]
         [HttpGet("/health")]
+        [HttpGet("/api/health")]
         public IActionResult Health()
         {
             return Ok(new { status = "ok" });
