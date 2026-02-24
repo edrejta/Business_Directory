@@ -8,10 +8,12 @@ public sealed class CreatePromotionRequestDto
     public Guid BusinessId { get; set; }
 
     [Required]
+    [MinLength(1)]
     [MaxLength(120)]
     public string Title { get; set; } = string.Empty;
 
     [Required]
+    [MinLength(1)]
     [MaxLength(500)]
     public string Description { get; set; } = string.Empty;
 
