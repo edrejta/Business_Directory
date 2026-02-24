@@ -17,9 +17,10 @@ public sealed class AdminReportService : IAdminReportService
 
     public async Task<AdminReportSummaryDto> GetSummaryAsync(CancellationToken cancellationToken = default)
     {
-        var totalUsersTask = _db.Users.AsNoTracking().CountAsync(cancellationToken);
-        var totalBusinessesTask = _db.Businesses.AsNoTracking().CountAsync(cancellationToken);
-        var totalCommentsTask = _db.Comments.AsNoTracking().CountAsync(cancellationToken);
+        // DbContext is not thread-safe; run queries sequentially.
+        var totalUsers = await _db.Users.AsNoTracking().CountAsync(cancellationToken);
+        var totalBusinesses = await _db.Businesses.AsNoTracking().CountAsync(cancellationToken);
+        var totalComments = await _db.Comments.AsNoTracking().CountAsync(cancellationToken);
 
         var statusCounts = await _db.Businesses
             .AsNoTracking()
@@ -27,13 +28,11 @@ public sealed class AdminReportService : IAdminReportService
             .Select(g => new { g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
 
-        await Task.WhenAll(totalUsersTask, totalBusinessesTask, totalCommentsTask);
-
         return new AdminReportSummaryDto
         {
-            TotalUsers = totalUsersTask.Result,
-            TotalBusinesses = totalBusinessesTask.Result,
-            TotalComments = totalCommentsTask.Result,
+            TotalUsers = totalUsers,
+            TotalBusinesses = totalBusinesses,
+            TotalComments = totalComments,
             ApprovedBusinesses = statusCounts.GetValueOrDefault(BusinessStatus.Approved),
             PendingBusinesses = statusCounts.GetValueOrDefault(BusinessStatus.Pending),
             RejectedBusinesses = statusCounts.GetValueOrDefault(BusinessStatus.Rejected),
