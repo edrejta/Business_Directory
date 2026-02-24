@@ -18,6 +18,18 @@ spec:
           image: bdprojectlife.azurecr.io/businessdirectory-api:placeholder
           ports:
             - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
           env:
             - name: ASPNETCORE_URLS
               value: http://+:8080
