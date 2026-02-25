@@ -9,6 +9,7 @@ using Infrastructure.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -33,6 +34,7 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddDistributedMemoryCache();
 
 // Swagger + JWT support (Authorize button)
 builder.Services.AddSwaggerGen(options =>
@@ -75,6 +77,15 @@ builder.Services.AddCors(options =>
             .WithExposedHeaders("Content-Disposition");
     });
 });
+
+var redisConnectionString = builder.Configuration["Redis:ConnectionString"];
+if (!string.IsNullOrWhiteSpace(redisConnectionString))
+{
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnectionString;
+    });
+}
 
 // Database: SQLite for dev/testing fallback, SQL Server if connection string is configured
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -180,6 +191,11 @@ using (var scope = app.Services.CreateScope())
 
 // CORS should be before HTTPS redirection (so preflight works)
 app.UseCors("AllowFrontend");
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 app.UseHttpsRedirection();
 

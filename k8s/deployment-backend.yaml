@@ -40,8 +40,15 @@ spec:
           env:
             - name: ASPNETCORE_URLS
               value: http://+:8080
+            - name: ASPNETCORE_FORWARDEDHEADERS_ENABLED
+              value: "true"
             - name: ConnectionStrings__DefaultConnection
               valueFrom:
                 secretKeyRef:
                   name: bd-api-secrets
                   key: ConnectionStrings__DefaultConnection
+            - name: Redis__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: bd-api-secrets
+                  key: Redis__ConnectionString
