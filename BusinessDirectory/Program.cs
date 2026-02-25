@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -150,26 +149,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 var app = builder.Build();
-
-using (var scope = app.Services.CreateScope())
-{
-    var cache = scope.ServiceProvider.GetRequiredService<IDistributedCache>();
-
-    try
-    {
-        await cache.SetStringAsync("redis:health:test", "ok", new DistributedCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
-        });
-
-        var v = await cache.GetStringAsync("redis:health:test");
-        app.Logger.LogInformation("Redis check: {Value}", v ?? "(null)");
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogError(ex, "Redis check FAILED");
-    }
-}
 
 if (app.Environment.IsDevelopment())
 {
