@@ -1,3 +1,4 @@
+using BusinessDirectory.Application.Dtos;
 using BusinessDirectory.Application.Dtos.Businesses;
 
 namespace BusinessDirectory.Application.Interfaces;

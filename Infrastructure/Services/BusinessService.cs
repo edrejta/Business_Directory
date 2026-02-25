@@ -1,20 +1,28 @@
-﻿using BusinessDirectory.Application.Dtos;
+using BusinessDirectory.Application.Dtos;
 using BusinessDirectory.Application.Dtos.Businesses;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Entities;
 using BusinessDirectory.Domain.Enums;
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace BusinessDirectory.Infrastructure.Services;
 
 public class BusinessService : IBusinessService
 {
-    private readonly ApplicationDbContext _db;
+    private const string BusinessCacheVersionKey = "cache:businesses:version";
+    private static readonly TimeSpan ApprovedBusinessCacheTtl = TimeSpan.FromMinutes(5);
+    private static readonly JsonSerializerOptions CacheJsonOptions = new(JsonSerializerDefaults.Web);
 
-    public BusinessService(ApplicationDbContext db)
+    private readonly ApplicationDbContext _db;
+    private readonly IDistributedCache _cache;
+
+    public BusinessService(ApplicationDbContext db, IDistributedCache cache)
     {
         _db = db;
+        _cache = cache;
     }
 
     private static string TrimOrEmpty(string? value) => value?.Trim() ?? string.Empty;
@@ -35,6 +43,12 @@ public class BusinessService : IBusinessService
         BusinessType? type,
         CancellationToken ct)
     {
+        var version = await GetVersionAsync(ct);
+        var cacheKey = $"businesses:approved:{version}:search={NormalizeCacheSegment(search)}:city={NormalizeCacheSegment(city)}:type={(type?.ToString() ?? "null")}";
+        var cached = await GetFromCacheAsync<IReadOnlyList<BusinessDto>>(cacheKey, ct);
+        if (cached is not null)
+            return cached;
+
         var query = _db.Businesses.AsNoTracking()
             .Where(b => b.Status == BusinessStatus.Approved);
 
@@ -57,7 +71,7 @@ public class BusinessService : IBusinessService
             query = query.Where(b => b.BusinessType == type.Value);
         }
 
-        return await query
+        var result = await query
             .OrderByDescending(b => b.CreatedAt)
             .Select(b => new BusinessDto
             {
@@ -84,11 +98,20 @@ public class BusinessService : IBusinessService
                 IsFavorite = false
             })
             .ToListAsync(ct);
+
+        await SetCacheAsync(cacheKey, result, ApprovedBusinessCacheTtl, ct);
+        return result;
     }
 
     public async Task<BusinessDto?> GetApprovedByIdAsync(Guid id, CancellationToken ct)
     {
-        return await _db.Businesses.AsNoTracking()
+        var version = await GetVersionAsync(ct);
+        var cacheKey = $"businesses:approved:{version}:id={id}";
+        var cached = await GetFromCacheAsync<BusinessDto>(cacheKey, ct);
+        if (cached is not null)
+            return cached;
+
+        var result = await _db.Businesses.AsNoTracking()
             .Where(b => b.Id == id && b.Status == BusinessStatus.Approved)
             .Select(b => new BusinessDto
             {
@@ -110,6 +133,11 @@ public class BusinessService : IBusinessService
                 IsFavorite = false
             })
             .FirstOrDefaultAsync(ct);
+
+        if (result is not null)
+            await SetCacheAsync(cacheKey, result, ApprovedBusinessCacheTtl, ct);
+
+        return result;
     }
 
     public async Task<BusinessDto?> GetMineByIdAsync(Guid businessId, Guid ownerId, CancellationToken ct)
@@ -202,6 +230,7 @@ public class BusinessService : IBusinessService
 
         _db.Businesses.Add(business);
         await _db.SaveChangesAsync(ct);
+        await BumpVersionAsync(ct);
 
         return new BusinessDto
         {
@@ -252,6 +281,7 @@ public class BusinessService : IBusinessService
         business.WebsiteUrl = TrimOrEmpty(dto.BusinessUrl);
 
         await _db.SaveChangesAsync(ct);
+        await BumpVersionAsync(ct);
 
         return (new BusinessDto
         {
@@ -292,7 +322,83 @@ public class BusinessService : IBusinessService
 
         _db.Businesses.Remove(business);
         await _db.SaveChangesAsync(ct);
+        await BumpVersionAsync(ct);
 
         return (false, false, null);
+    }
+
+    private async Task<string> GetVersionAsync(CancellationToken ct)
+    {
+        try
+        {
+            var version = await _cache.GetStringAsync(BusinessCacheVersionKey, ct);
+            if (!string.IsNullOrWhiteSpace(version))
+                return version;
+
+            version = "v1";
+            await _cache.SetStringAsync(
+                BusinessCacheVersionKey,
+                version,
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(30) },
+                ct);
+            return version;
+        }
+        catch
+        {
+            return "v1";
+        }
+    }
+
+    private async Task BumpVersionAsync(CancellationToken ct)
+    {
+        try
+        {
+            var nextVersion = $"v{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+            await _cache.SetStringAsync(
+                BusinessCacheVersionKey,
+                nextVersion,
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(30) },
+                ct);
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task<T?> GetFromCacheAsync<T>(string key, CancellationToken ct)
+    {
+        try
+        {
+            var json = await _cache.GetStringAsync(key, ct);
+            return string.IsNullOrWhiteSpace(json) ? default : JsonSerializer.Deserialize<T>(json, CacheJsonOptions);
+        }
+        catch
+        {
+            return default;
+        }
+    }
+
+    private async Task SetCacheAsync<T>(string key, T value, TimeSpan ttl, CancellationToken ct)
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(value, CacheJsonOptions);
+            await _cache.SetStringAsync(
+                key,
+                json,
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl },
+                ct);
+        }
+        catch
+        {
+        }
+    }
+
+    private static string NormalizeCacheSegment(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "null";
+
+        return Uri.EscapeDataString(value.Trim().ToLowerInvariant());
     }
 }
