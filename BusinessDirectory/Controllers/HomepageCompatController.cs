@@ -1,7 +1,3 @@
-using BusinessDirectory.Application.Dtos.Promotions;
-using BusinessDirectory.Application.Dtos.Reviews;
-using BusinessDirectory.Application.Dtos.Subscribe;
-using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Enums;
 using Infrastructure;
 using Microsoft.AspNetCore.Authorization;
@@ -12,24 +8,15 @@ namespace BusinessDirectory.Controllers;
 
 [ApiController]
 [AllowAnonymous]
-[Route("")]
+[Route("api")]
 public sealed class HomepageCompatController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
-    private readonly IPromotionService _promotionService;
-    private readonly IReviewService _reviewService;
-    private readonly ISubscribeService _subscribeService;
 
     public HomepageCompatController(
-        ApplicationDbContext db,
-        IPromotionService promotionService,
-        IReviewService reviewService,
-        ISubscribeService subscribeService)
+        ApplicationDbContext db)
     {
         _db = db;
-        _promotionService = promotionService;
-        _reviewService = reviewService;
-        _subscribeService = subscribeService;
     }
 
     [HttpGet("categories")]
@@ -233,48 +220,6 @@ public sealed class HomepageCompatController : ControllerBase
             x.City,
             x.PhoneNumber,
             x.CreatedAt)).ToList());
-    }
-
-    [HttpGet("promotions")]
-    public async Task<ActionResult<IReadOnlyList<PromotionResponseDto>>> GetPromotions(
-        [FromQuery] string? category = null,
-        [FromQuery] Guid? businessId = null,
-        [FromQuery] bool onlyActive = true,
-        CancellationToken ct = default)
-    {
-        var data = await _promotionService.GetAsync(new GetPromotionsQueryDto
-        {
-            Category = category,
-            BusinessId = businessId,
-            OnlyActive = onlyActive
-        }, ct);
-
-        return Ok(data);
-    }
-
-    [HttpGet("reviews")]
-    public async Task<ActionResult<IReadOnlyList<ReviewResponseDto>>> GetReviews(
-        [FromQuery] Guid? businessId = null,
-        [FromQuery] int limit = 20,
-        CancellationToken ct = default)
-    {
-        var data = await _reviewService.GetAsync(new GetReviewsQueryDto
-        {
-            BusinessId = businessId,
-            Limit = limit
-        }, ct);
-
-        return Ok(data);
-    }
-
-    [HttpPost("subscribe")]
-    public async Task<ActionResult<SubscribeResponseDto>> Subscribe([FromBody] SubscribeRequestDto request, CancellationToken ct)
-    {
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        var result = await _subscribeService.SubscribeAsync(request, ct);
-        return Ok(result);
     }
 
     public sealed class HomeBusinessDto
