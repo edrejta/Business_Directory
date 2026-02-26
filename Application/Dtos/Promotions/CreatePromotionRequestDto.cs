@@ -27,5 +27,6 @@ public sealed class CreatePromotionRequestDto
     [Range(0, 99999999)]
     public decimal? DiscountedPrice { get; set; }
 
-    public DateTime? ExpiresAt { get; set; }
+    public DateTime? StartsAt { get; set; }
+    public DateTime? ExpiresAt { get; set; } 
 }

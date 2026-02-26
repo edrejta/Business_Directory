@@ -11,6 +11,7 @@ public sealed class PromotionResponseDto
     public decimal? OriginalPrice { get; set; }
     public decimal? DiscountedPrice { get; set; }
     public int? DiscountPercent { get; set; }
+    public DateTime? StartsAt { get; set; }
     public DateTime? ExpiresAt { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }

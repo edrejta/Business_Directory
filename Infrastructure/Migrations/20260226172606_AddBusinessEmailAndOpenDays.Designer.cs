@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BusinessDirectory.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260225183807_SyncModel")]
-    partial class SyncModel
+    [Migration("20260226172606_AddBusinessEmailAndOpenDays")]
+    partial class AddBusinessEmailAndOpenDays
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -257,6 +257,9 @@ namespace BusinessDirectory.Infrastructure.Migrations
 
                     b.Property<decimal?>("OriginalPrice")
                         .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("StartsAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Title")

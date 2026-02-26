@@ -256,6 +256,9 @@ namespace BusinessDirectory.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("StartsAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(120)

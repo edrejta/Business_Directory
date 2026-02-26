@@ -29,6 +29,12 @@ public sealed class BusinessUpdateDto
     [JsonPropertyName("imageUrl")]
     public string? ImageUrl { get; set; }
 
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+
+    [JsonPropertyName("openDays")]
+    public string? OpenDays { get; set; }
+
     [JsonPropertyName("businessName")]
     public string BusinessName
     {

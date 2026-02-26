@@ -37,6 +37,60 @@ public class BusinessService : IBusinessService
             : BusinessType.Unknown;
     }
 
+    private static string OpenDaysFromMask(int mask)
+    {
+        var days = new List<string>(7);
+        if ((mask & 1) != 0) days.Add("Mon");
+        if ((mask & 2) != 0) days.Add("Tue");
+        if ((mask & 4) != 0) days.Add("Wed");
+        if ((mask & 8) != 0) days.Add("Thu");
+        if ((mask & 16) != 0) days.Add("Fri");
+        if ((mask & 32) != 0) days.Add("Sat");
+        if ((mask & 64) != 0) days.Add("Sun");
+        return days.Count == 0 ? string.Empty : string.Join(", ", days);
+    }
+
+    private static int? TryParseOpenDaysToMask(string? input)
+    {
+        if (input is null)
+            return null;
+
+        var trimmed = input.Trim();
+        if (trimmed.Length == 0)
+            return 127;
+
+        if (int.TryParse(trimmed, out var numeric))
+        {
+            if (numeric < 0) return 0;
+            if (numeric > 127) return 127;
+            return numeric;
+        }
+
+        var tokens = trimmed
+            .Replace(";", ",")
+            .Replace("|", ",")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (tokens.Length == 0)
+            return 127;
+
+        var mask = 0;
+        foreach (var raw in tokens)
+        {
+            var t = raw.Trim().ToLowerInvariant();
+
+            if (t is "mon" or "monday") mask |= 1;
+            else if (t is "tue" or "tues" or "tuesday") mask |= 2;
+            else if (t is "wed" or "wednesday") mask |= 4;
+            else if (t is "thu" or "thur" or "thurs" or "thursday") mask |= 8;
+            else if (t is "fri" or "friday") mask |= 16;
+            else if (t is "sat" or "saturday") mask |= 32;
+            else if (t is "sun" or "sunday") mask |= 64;
+        }
+
+        return mask == 0 ? 127 : mask;
+    }
+
     public async Task<IReadOnlyList<BusinessDto>> GetApprovedAsync(
         string? search,
         string? city,
@@ -85,6 +139,8 @@ public class BusinessService : IBusinessService
                 City = b.City,
                 Email = b.Email,
                 PhoneNumber = b.PhoneNumber,
+                OpenDays = OpenDaysFromMask(b.OpenDaysMask),
+
                 Description = b.Description,
                 ImageUrl = b.ImageUrl,
 
@@ -123,6 +179,7 @@ public class BusinessService : IBusinessService
                 City = b.City,
                 Email = b.Email,
                 PhoneNumber = b.PhoneNumber,
+                OpenDays = OpenDaysFromMask(b.OpenDaysMask),
                 Description = b.Description,
                 ImageUrl = b.ImageUrl,
                 BusinessUrl = b.WebsiteUrl,
@@ -154,6 +211,7 @@ public class BusinessService : IBusinessService
                 City = b.City,
                 Email = b.Email,
                 PhoneNumber = b.PhoneNumber,
+                OpenDays = OpenDaysFromMask(b.OpenDaysMask),
                 Description = b.Description,
                 ImageUrl = b.ImageUrl,
                 BusinessUrl = b.WebsiteUrl,
@@ -189,6 +247,7 @@ public class BusinessService : IBusinessService
                 City = b.City,
                 Email = b.Email,
                 PhoneNumber = b.PhoneNumber,
+                OpenDays = OpenDaysFromMask(b.OpenDaysMask),
                 Description = b.Description,
                 ImageUrl = b.ImageUrl,
                 BusinessUrl = b.WebsiteUrl,
@@ -204,6 +263,7 @@ public class BusinessService : IBusinessService
     public async Task<BusinessDto> CreateAsync(BusinessCreateDto dto, Guid ownerId, CancellationToken ct)
     {
         var parsedType = ParseBusinessTypeOrUnknown(dto.Type);
+        var openDaysMask = TryParseOpenDaysToMask(dto.OpenDays) ?? 127;
 
         var business = new Business
         {
@@ -222,7 +282,9 @@ public class BusinessService : IBusinessService
 
             BusinesssNumber = TrimOrEmpty(dto.BusinessNumber),
 
-            Email = string.Empty,
+            Email = TrimOrEmpty(dto.Email),
+
+            OpenDaysMask = openDaysMask,
 
             Status = BusinessStatus.Pending,
             CreatedAt = DateTime.UtcNow
@@ -242,6 +304,7 @@ public class BusinessService : IBusinessService
             City = business.City,
             Email = business.Email,
             PhoneNumber = business.PhoneNumber,
+            OpenDays = OpenDaysFromMask(business.OpenDaysMask),
             Description = business.Description,
             ImageUrl = business.ImageUrl,
             BusinessUrl = business.WebsiteUrl,
@@ -277,8 +340,14 @@ public class BusinessService : IBusinessService
         business.Description = TrimOrEmpty(dto.Description);
         business.PhoneNumber = TrimOrEmpty(dto.PhoneNumber);
         business.ImageUrl = TrimOrEmpty(dto.ImageUrl);
-
         business.WebsiteUrl = TrimOrEmpty(dto.BusinessUrl);
+
+        if (dto.Email is not null)
+            business.Email = TrimOrEmpty(dto.Email);
+
+        var parsedMask = TryParseOpenDaysToMask(dto.OpenDays);
+        if (parsedMask.HasValue)
+            business.OpenDaysMask = parsedMask.Value;
 
         await _db.SaveChangesAsync(ct);
         await BumpVersionAsync(ct);
@@ -293,6 +362,7 @@ public class BusinessService : IBusinessService
             City = business.City,
             Email = business.Email,
             PhoneNumber = business.PhoneNumber,
+            OpenDays = OpenDaysFromMask(business.OpenDaysMask),
             Description = business.Description,
             ImageUrl = business.ImageUrl,
             BusinessUrl = business.WebsiteUrl,
