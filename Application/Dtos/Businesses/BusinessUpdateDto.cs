@@ -1,24 +1,48 @@
+using System.Text.Json.Serialization;
 using BusinessDirectory.Domain.Enums;
 
 namespace BusinessDirectory.Application.Dtos.Businesses;
 
 public sealed class BusinessUpdateDto
 {
-    public string BusinessName { get; set; } = string.Empty;
-    
-    public string Address { get; set; } = string.Empty;
-    
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = string.Empty;
+
+    [JsonPropertyName("city")]
     public string City { get; set; } = string.Empty;
-    
-    public string Email { get; set; } = string.Empty;
-    
-    public string PhoneNumber { get; set; } = string.Empty;
-    
-    public BusinessType BusinessType { get; set; }
-    
-    public string Description { get; set; } = string.Empty;
-    
-    public string ImageUrl { get; set; } = string.Empty;
-    
-    public BusinessStatus Status { get; set; }
+
+    [JsonPropertyName("address")]
+    public string? Address { get; set; }
+
+    [JsonPropertyName("businessUrl")]
+    public string? BusinessUrl { get; set; }
+
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
+
+    [JsonPropertyName("phoneNumber")]
+    public string? PhoneNumber { get; set; }
+
+    [JsonPropertyName("imageUrl")]
+    public string? ImageUrl { get; set; }
+
+    [JsonPropertyName("businessName")]
+    public string BusinessName
+    {
+        get => Name;
+        set => Name = value ?? string.Empty;
+    }
+
+    [JsonPropertyName("businessType")]
+    public BusinessType? BusinessType { get; set; }
+
+    [JsonPropertyName("websiteUrl")]
+    public string? WebsiteUrl
+    {
+        get => BusinessUrl;
+        set => BusinessUrl = value;
+    }
 }
