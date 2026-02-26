@@ -57,7 +57,7 @@ spec:
                 name: bd-backend
                 port:
                   number: 80
-          - path: /health
+          - path: /api/health
             pathType: Prefix
             backend:
               service:

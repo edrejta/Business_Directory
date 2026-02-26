@@ -41,4 +41,5 @@ jobs:
           kubectl apply -f k8s/service.yaml
           kubectl apply -f k8s/deployment-backend.yaml
           kubectl -n dev set image deployment/bd-backend bd-backend=${{ vars.ACR_LOGIN_SERVER }}/businessdirectory-api:${{ github.sha }}
+          kubectl -n dev annotate deployment/bd-backend kubernetes.io/change-cause="image=${{ vars.ACR_LOGIN_SERVER }}/businessdirectory-api:${{ github.sha }}" --overwrite
           kubectl -n dev rollout status deployment/bd-backend

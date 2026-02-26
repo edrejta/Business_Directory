@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
         - name: bd-frontend
-          image: bdprojectlife.azurecr.io/bd-frontend:latest
+          image: bdprojectlife.azurecr.io/bd-frontend:placeholder
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           resources:

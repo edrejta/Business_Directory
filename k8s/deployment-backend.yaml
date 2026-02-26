@@ -16,6 +16,7 @@ spec:
       containers:
         - name: bd-backend
           image: bdprojectlife.azurecr.io/businessdirectory-api:placeholder
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           resources:
