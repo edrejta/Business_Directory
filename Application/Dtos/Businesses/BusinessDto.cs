@@ -45,7 +45,10 @@ public sealed class BusinessDto
     public DateTime CreatedAt { get; set; }
 
     [JsonPropertyName("email")]
-    public string Email { get; set; } = string.Empty;
+    public string? Email { get; set; }
+
+    [JsonPropertyName("openDays")]
+    public string? OpenDays { get; set; }
 
     [JsonPropertyName("suspensionReason")]
     public string? SuspensionReason { get; set; }

@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using BusinessDirectory.Application.Dtos;
 using BusinessDirectory.Application.Dtos.Businesses;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Enums;
@@ -21,9 +20,13 @@ public sealed class BusinessesController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("public")]
-    public async Task<ActionResult<IReadOnlyList<BusinessPublicDto>>> GetPublicApproved(CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<BusinessPublicDto>>> GetPublicApproved(
+        [FromQuery] string? search,
+        [FromQuery] string? city,
+        [FromQuery] BusinessType? type,
+        CancellationToken cancellationToken)
     {
-        var results = await _businessService.GetApprovedAsync(null, null, null, cancellationToken);
+        var results = await _businessService.GetApprovedAsync(search, city, type, cancellationToken);
 
         var publicResults = results.Select(b => new BusinessPublicDto
         {
@@ -31,13 +34,18 @@ public sealed class BusinessesController : ControllerBase
             BusinessName = b.BusinessName,
             Description = b.Description,
             City = b.City,
-            Category = b.BusinessType.ToString()
+            Address = b.Address,
+            Category = b.BusinessType.ToString(),
+            PhoneNumber = b.PhoneNumber,
+            Email = b.Email,
+            OpenDays = b.OpenDays,
+            ImageUrl = b.ImageUrl
         }).ToList();
 
         return Ok(publicResults);
     }
 
-    
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<BusinessDto>>> GetBusinesses(
         [FromQuery] string? search,
@@ -49,16 +57,34 @@ public sealed class BusinessesController : ControllerBase
         return Ok(results);
     }
 
-    
+    [AllowAnonymous]
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<BusinessDto>> GetBusinessById(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<BusinessPublicDto>> GetBusinessById(Guid id, CancellationToken cancellationToken)
     {
         var business = await _businessService.GetApprovedByIdAsync(id, cancellationToken);
-        return business is null ? NotFound() : Ok(business);
+
+        if (business is null)
+            return NotFound();
+
+        var dto = new BusinessPublicDto
+        {
+            Id = business.Id,
+            BusinessName = business.BusinessName,
+            Description = business.Description,
+            City = business.City,
+            Address = business.Address,
+            Category = business.BusinessType.ToString(),
+            PhoneNumber = business.PhoneNumber,
+            Email = business.Email,
+            OpenDays = business.OpenDays,
+            ImageUrl = business.ImageUrl
+        };
+
+        return Ok(dto);
     }
 
-    [HttpGet("mine/{id:guid}")]
     [Authorize]
+    [HttpGet("mine/{id:guid}")]
     public async Task<ActionResult<BusinessDto>> GetMyBusinessById(Guid id, CancellationToken cancellationToken)
     {
         var ownerId = GetUserId();
@@ -70,9 +96,11 @@ public sealed class BusinessesController : ControllerBase
         return business is null ? NotFound() : Ok(business);
     }
 
-    [HttpPost]
     [Authorize]
-    public async Task<ActionResult<BusinessDto>> CreateBusiness([FromBody] BusinessCreateDto dto, CancellationToken cancellationToken)
+    [HttpPost]
+    public async Task<ActionResult<BusinessDto>> CreateBusiness(
+        [FromBody] BusinessCreateDto dto,
+        CancellationToken cancellationToken)
     {
         var ownerId = GetUserId();
         if (ownerId is null)
@@ -82,9 +110,12 @@ public sealed class BusinessesController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, response);
     }
 
-    [HttpPut("{id:guid}")]
     [Authorize]
-    public async Task<ActionResult<BusinessDto>> UpdateBusiness(Guid id, [FromBody] BusinessUpdateDto dto, CancellationToken cancellationToken)
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<BusinessDto>> UpdateBusiness(
+        Guid id,
+        [FromBody] BusinessUpdateDto dto,
+        CancellationToken cancellationToken)
     {
         var ownerId = GetUserId();
         if (ownerId is null)
@@ -104,8 +135,8 @@ public sealed class BusinessesController : ControllerBase
         return Ok(result.Result);
     }
 
-    [HttpGet("mine")]
     [Authorize]
+    [HttpGet("mine")]
     public async Task<ActionResult<IReadOnlyList<BusinessDto>>> GetMine(
         [FromQuery] BusinessStatus? status,
         CancellationToken cancellationToken)
@@ -118,9 +149,8 @@ public sealed class BusinessesController : ControllerBase
         return Ok(results);
     }
 
-
-    [HttpDelete("{id:guid}")]
     [Authorize]
+    [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteBusiness(Guid id, CancellationToken cancellationToken)
     {
         var ownerId = GetUserId();
@@ -138,7 +168,12 @@ public sealed class BusinessesController : ControllerBase
 
     private Guid? GetUserId()
     {
-        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userIdValue =
+            User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub")
+            ?? User.FindFirstValue("id")
+            ?? User.FindFirstValue("userId");
+
         return Guid.TryParse(userIdValue, out var userId) ? userId : null;
     }
 }

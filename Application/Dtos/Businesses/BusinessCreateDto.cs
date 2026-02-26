@@ -32,6 +32,12 @@ public sealed class BusinessCreateDto
     [JsonPropertyName("businessNumber")]
     public string BusinessNumber { get; set; } = string.Empty;
 
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+
+    [JsonPropertyName("openDays")]
+    public string? OpenDays { get; set; }
+
     [JsonPropertyName("businessName")]
     public string BusinessName
     {
