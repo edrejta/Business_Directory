@@ -85,9 +85,13 @@ if (!string.IsNullOrWhiteSpace(redisConnectionString))
 }
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-var useSqlite = builder.Configuration.GetValue<bool>("UseSqliteForDev")
-    || string.IsNullOrWhiteSpace(connectionString)
-    || !connectionString.Contains("Server=", StringComparison.OrdinalIgnoreCase);
+var useSqlite = builder.Configuration.GetValue<bool>("UseSqliteForDev");
+
+if (!useSqlite && string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "ConnectionStrings:DefaultConnection is missing. Set it via user-secrets or environment variables.");
+}
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
