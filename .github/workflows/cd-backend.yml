@@ -7,7 +7,7 @@ on:
     branches: [dev, main]
 
 concurrency:
-  group: cd-backend-${{ github.ref }}
+  group: cd-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -48,8 +48,7 @@ jobs:
         run: |
           set -euo pipefail
           az aks get-credentials -g ${{ vars.AKS_RESOURCE_GROUP }} -n ${{ vars.AKS_CLUSTER_NAME }} --overwrite-existing
-          IMAGE="${{ vars.ACR_LOGIN_SERVER }}/businessdirectory-api:${{ github.sha }}"
-          kubectl apply -f k8s/service.yaml
-          sed -E "s|^([[:space:]]*image:[[:space:]]*).*$|\1$IMAGE|" k8s/deployment-backend.yaml | kubectl -n dev apply -f -
-          kubectl -n dev annotate deployment/bd-backend kubernetes.io/change-cause="image=$IMAGE" --overwrite
+          kubectl apply -f k8s/dev/
+          kubectl -n dev set image deployment/bd-backend bd-backend=${{ vars.ACR_LOGIN_SERVER }}/businessdirectory-api:${{ github.sha }}
+          kubectl -n dev annotate deployment/bd-backend kubernetes.io/change-cause="image=${{ vars.ACR_LOGIN_SERVER }}/businessdirectory-api:${{ github.sha }}" --overwrite
           kubectl -n dev rollout status deployment/bd-backend
