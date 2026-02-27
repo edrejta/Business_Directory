@@ -15,6 +15,27 @@ public sealed class CommentService : ICommentService
         _db = db;
     }
 
+    public async Task<IReadOnlyList<CommentDto>> GetByBusinessAsync(Guid businessId, int limit, CancellationToken ct)
+    {
+        var take = Math.Clamp(limit, 1, 100);
+
+        return await _db.Comments
+            .AsNoTracking()
+            .Where(c => c.BusinessId == businessId)
+            .OrderByDescending(c => c.CreatedAt)
+            .Take(take)
+            .Select(c => new CommentDto
+            {
+                Id = c.Id,
+                BusinessId = c.BusinessId,
+                UserId = c.UserId,
+                Text = c.Text,
+                Rate = c.Rate,
+                CreatedAt = c.CreatedAt
+            })
+            .ToListAsync(ct);
+    }
+
     public async Task<CommentDto> CreateAsync(Guid userId, CommentCreateDto dto, CancellationToken ct)
     {
         var businessExists = await _db.Businesses

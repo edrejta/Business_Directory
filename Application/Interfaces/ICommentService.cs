@@ -4,6 +4,8 @@ namespace BusinessDirectory.Application.Interfaces;
 
 public interface ICommentService
 {
+    Task<IReadOnlyList<CommentDto>> GetByBusinessAsync(Guid businessId, int limit, CancellationToken ct);
+
     Task<CommentDto> CreateAsync(Guid userId, CommentCreateDto dto, CancellationToken ct);
 
     Task<(CommentDto? Result, bool NotFound, bool Forbid, string? Error)> UpdateAsync(
