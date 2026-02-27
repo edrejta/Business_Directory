@@ -60,6 +60,15 @@ public sealed class AdminBusinessService : IAdminBusinessService
             return (null, false, true, "Business is already approved.");
 
         business.Status = BusinessStatus.Approved;
+
+        // When a business gets approved, elevate its owner to BusinessOwner if they are still a regular user.
+        var owner = await _db.Users.FirstOrDefaultAsync(u => u.Id == business.OwnerId, cancellationToken);
+        if (owner is not null && owner.Role == UserRole.User)
+        {
+            owner.Role = UserRole.BusinessOwner;
+            owner.UpdatedAt = DateTime.UtcNow;
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
 
         return (ToDto(business), false, false, null);
