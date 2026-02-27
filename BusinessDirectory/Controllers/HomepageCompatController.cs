@@ -231,7 +231,7 @@ public sealed class HomepageCompatController : ControllerBase
             x.CreatedAt)).ToList());
     }
 
-    [HttpGet("promotions")]
+    [HttpGet("/promotions")]
     public async Task<ActionResult<IReadOnlyList<PromotionResponseDto>>> GetPromotions(
         [FromQuery] string? category = null,
         [FromQuery] Guid? businessId = null,
@@ -248,7 +248,7 @@ public sealed class HomepageCompatController : ControllerBase
         return Ok(data);
     }
 
-    [HttpPost("subscribe")]
+    [HttpPost("/subscribe")]
     public async Task<ActionResult<SubscribeResponseDto>> Subscribe([FromBody] SubscribeRequestDto request, CancellationToken ct)
     {
         if (!ModelState.IsValid)
