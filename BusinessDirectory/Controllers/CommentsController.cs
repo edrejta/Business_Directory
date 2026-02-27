@@ -17,6 +17,18 @@ public sealed class CommentsController : ControllerBase
         _service = service;
     }
 
+    // GET /api/comments?businessId={id}&limit=50
+    [HttpGet]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetByBusiness([FromQuery] Guid businessId, [FromQuery] int limit = 50, CancellationToken ct = default)
+    {
+        if (businessId == Guid.Empty)
+            return BadRequest(new { message = "businessId is required." });
+
+        var comments = await _service.GetByBusinessAsync(businessId, limit, ct);
+        return Ok(comments);
+    }
+
     // POST /api/comments
     [HttpPost]
     [Authorize]

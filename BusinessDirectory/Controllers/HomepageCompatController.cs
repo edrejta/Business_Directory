@@ -1,5 +1,4 @@
 using BusinessDirectory.Application.Dtos.Promotions;
-using BusinessDirectory.Application.Dtos.Reviews;
 using BusinessDirectory.Application.Dtos.Subscribe;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Enums;
@@ -17,18 +16,15 @@ public sealed class HomepageCompatController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
     private readonly IPromotionService _promotionService;
-    private readonly IReviewService _reviewService;
     private readonly ISubscribeService _subscribeService;
 
     public HomepageCompatController(
         ApplicationDbContext db,
         IPromotionService promotionService,
-        IReviewService reviewService,
         ISubscribeService subscribeService)
     {
         _db = db;
         _promotionService = promotionService;
-        _reviewService = reviewService;
         _subscribeService = subscribeService;
     }
 
@@ -247,21 +243,6 @@ public sealed class HomepageCompatController : ControllerBase
             Category = category,
             BusinessId = businessId,
             OnlyActive = onlyActive
-        }, ct);
-
-        return Ok(data);
-    }
-
-    [HttpGet("reviews")]
-    public async Task<ActionResult<IReadOnlyList<ReviewResponseDto>>> GetReviews(
-        [FromQuery] Guid? businessId = null,
-        [FromQuery] int limit = 20,
-        CancellationToken ct = default)
-    {
-        var data = await _reviewService.GetAsync(new GetReviewsQueryDto
-        {
-            BusinessId = businessId,
-            Limit = limit
         }, ct);
 
         return Ok(data);

@@ -123,7 +123,6 @@ builder.Services.AddScoped<IAdminCategoryService, AdminCategoryService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IOpenDaysService, OpenDaysService>();
-builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<ISubscribeService, SubscribeService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
