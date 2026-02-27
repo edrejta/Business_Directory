@@ -38,10 +38,17 @@ kind: Ingress
 metadata:
   name: bd-ingress
   namespace: dev
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - itconnect.it.com
+      secretName: bd-tls
   rules:
-    - http:
+    - host: itconnect.it.com
+      http:
         paths:
           - path: /api
             pathType: Prefix
@@ -50,7 +57,7 @@ spec:
                 name: bd-backend
                 port:
                   number: 80
-          - path: /health
+          - path: /api/health
             pathType: Prefix
             backend:
               service:

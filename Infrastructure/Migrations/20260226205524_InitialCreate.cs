@@ -25,6 +25,19 @@ namespace BusinessDirectory.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "NewsletterSubscribers",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_NewsletterSubscribers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -91,6 +104,7 @@ namespace BusinessDirectory.Infrastructure.Migrations
                     Status = table.Column<int>(type: "int", nullable: false),
                     SuspensionReason = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    OpenDaysMask = table.Column<int>(type: "int", nullable: false),
                     WebsiteUrl = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -157,6 +171,33 @@ namespace BusinessDirectory.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "Promotions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    BusinessId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Category = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
+                    OriginalPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
+                    DiscountedPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
+                    StartsAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Promotions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Promotions_Businesses_BusinessId",
+                        column: x => x.BusinessId,
+                        principalTable: "Businesses",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AuditLogs_ActorUserId",
                 table: "AuditLogs",
@@ -173,15 +214,20 @@ namespace BusinessDirectory.Infrastructure.Migrations
                 column: "OwnerId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Businesses_Status_CreatedAt",
+                table: "Businesses",
+                columns: new[] { "Status", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Cities_Name",
                 table: "Cities",
                 column: "Name",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Comments_BusinessId",
+                name: "IX_Comments_BusinessId_CreatedAt",
                 table: "Comments",
-                column: "BusinessId");
+                columns: new[] { "BusinessId", "CreatedAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Comments_UserId",
@@ -192,6 +238,17 @@ namespace BusinessDirectory.Infrastructure.Migrations
                 name: "IX_Favorites_BusinessId",
                 table: "Favorites",
                 column: "BusinessId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NewsletterSubscribers_Email",
+                table: "NewsletterSubscribers",
+                column: "Email",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Promotions_BusinessId_IsActive_ExpiresAt_CreatedAt",
+                table: "Promotions",
+                columns: new[] { "BusinessId", "IsActive", "ExpiresAt", "CreatedAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
@@ -214,6 +271,12 @@ namespace BusinessDirectory.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Favorites");
+
+            migrationBuilder.DropTable(
+                name: "NewsletterSubscribers");
+
+            migrationBuilder.DropTable(
+                name: "Promotions");
 
             migrationBuilder.DropTable(
                 name: "Businesses");

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BusinessDirectory.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260223232313_AddHomepageContractApis")]
-    partial class AddHomepageContractApis
+    [Migration("20260226205524_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -134,6 +134,8 @@ namespace BusinessDirectory.Infrastructure.Migrations
 
                     b.HasIndex("OwnerId");
 
+                    b.HasIndex("Status", "CreatedAt");
+
                     b.ToTable("Businesses");
                 });
 
@@ -182,9 +184,9 @@ namespace BusinessDirectory.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BusinessId");
-
                     b.HasIndex("UserId");
+
+                    b.HasIndex("BusinessId", "CreatedAt");
 
                     b.ToTable("Comments");
                 });
@@ -264,6 +266,9 @@ namespace BusinessDirectory.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime?>("StartsAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -271,7 +276,7 @@ namespace BusinessDirectory.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BusinessId");
+                    b.HasIndex("BusinessId", "IsActive", "ExpiresAt", "CreatedAt");
 
                     b.ToTable("Promotions");
                 });

@@ -33,12 +33,14 @@ public sealed class PromotionService : IPromotionService
     public async Task<IReadOnlyList<PromotionResponseDto>> GetAsync(GetPromotionsQueryDto query, CancellationToken ct)
     {
         var version = await GetVersionAsync(ct);
-        var cacheKey = $"promotions:{version}:businessId={(query.BusinessId?.ToString() ?? "null")}:category={NormalizeCacheSegment(query.Category)}:active={query.OnlyActive}";
+        var cacheKey =
+            $"promotions:{version}:businessId={(query.BusinessId?.ToString() ?? "null")}:category={NormalizeCacheSegment(query.Category)}:active={query.OnlyActive}";
         var cached = await GetFromCacheAsync<IReadOnlyList<PromotionResponseDto>>(cacheKey, ct);
         if (cached is not null)
             return cached;
 
         var now = DateTime.UtcNow;
+
         var promotions = _db.Promotions
             .AsNoTracking()
             .Include(p => p.Business)
@@ -57,7 +59,12 @@ public sealed class PromotionService : IPromotionService
         }
 
         if (query.OnlyActive)
-            promotions = promotions.Where(p => p.IsActive && (p.ExpiresAt == null || p.ExpiresAt >= now));
+        {
+            promotions = promotions.Where(p =>
+                p.IsActive &&
+                (p.StartsAt == null || p.StartsAt <= now) &&
+                (p.ExpiresAt == null || p.ExpiresAt >= now));
+        }
 
         var result = await promotions
             .OrderByDescending(p => p.CreatedAt)
@@ -87,8 +94,10 @@ public sealed class PromotionService : IPromotionService
 
         var title = request.Title?.Trim() ?? string.Empty;
         var description = request.Description?.Trim() ?? string.Empty;
+
         if (title.Length == 0)
             return (null, false, false, "Title eshte i detyrueshem.");
+
         if (description.Length == 0)
             return (null, false, false, "Description eshte i detyrueshem.");
 
@@ -96,7 +105,13 @@ public sealed class PromotionService : IPromotionService
         if (category is null)
             return (null, false, false, "Category duhet te jete Discounts, FlashSales ose EarlyAccess.");
 
-        if (request.ExpiresAt.HasValue && request.ExpiresAt.Value <= DateTime.UtcNow)
+        var startsAt = request.StartsAt;
+        var expiresAt = request.ExpiresAt;
+
+        if (startsAt.HasValue && expiresAt.HasValue && expiresAt.Value <= startsAt.Value)
+            return (null, false, false, "ExpiresAt duhet te jete pas StartsAt.");
+
+        if (expiresAt.HasValue && expiresAt.Value <= DateTime.UtcNow)
             return (null, false, false, "ExpiresAt duhet te jete ne te ardhmen.");
 
         if (request.OriginalPrice.HasValue &&
@@ -115,7 +130,8 @@ public sealed class PromotionService : IPromotionService
             Category = category,
             OriginalPrice = request.OriginalPrice,
             DiscountedPrice = request.DiscountedPrice,
-            ExpiresAt = request.ExpiresAt,
+            StartsAt = startsAt,
+            ExpiresAt = expiresAt,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -125,6 +141,117 @@ public sealed class PromotionService : IPromotionService
         await BumpVersionAsync(ct);
 
         return (Map(entity, business.BusinessName), false, false, null);
+    }
+
+    public async Task<IReadOnlyList<PromotionResponseDto>> GetMineAsync(
+        Guid actorUserId,
+        Guid? businessId,
+        string? category,
+        CancellationToken ct)
+    {
+        var promotions = _db.Promotions
+            .AsNoTracking()
+            .Include(p => p.Business)
+            .Where(p => p.Business.OwnerId == actorUserId)
+            .AsQueryable();
+
+        if (businessId.HasValue)
+            promotions = promotions.Where(p => p.BusinessId == businessId.Value);
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            var normalized = NormalizeCategory(category);
+            if (normalized is null)
+                return Array.Empty<PromotionResponseDto>();
+
+            promotions = promotions.Where(p => p.Category == normalized);
+        }
+
+        var result = await promotions
+            .OrderByDescending(p => p.CreatedAt)
+            .Select(p => Map(p, p.Business.BusinessName))
+            .ToListAsync(ct);
+
+        return result;
+    }
+
+    public async Task<(PromotionResponseDto? Result, bool NotFound, bool Forbid, string? Error)> UpdateAsync(
+        Guid actorUserId,
+        Guid promotionId,
+        UpdatePromotionRequestDto request,
+        CancellationToken ct)
+    {
+        var promotion = await _db.Promotions
+            .Include(p => p.Business)
+            .FirstOrDefaultAsync(p => p.Id == promotionId, ct);
+
+        if (promotion is null)
+            return (null, true, false, null);
+
+        if (promotion.Business.OwnerId != actorUserId)
+            return (null, false, true, null);
+
+        var title = request.Title?.Trim() ?? string.Empty;
+        var description = request.Description?.Trim() ?? string.Empty;
+
+        if (title.Length == 0)
+            return (null, false, false, "Title eshte i detyrueshem.");
+
+        if (description.Length == 0)
+            return (null, false, false, "Description eshte i detyrueshem.");
+
+        var category = NormalizeCategory(request.Category);
+        if (category is null)
+            return (null, false, false, "Category duhet te jete Discounts, FlashSales ose EarlyAccess.");
+
+        var startsAt = request.StartsAt;
+        var expiresAt = request.ExpiresAt;
+
+        if (startsAt.HasValue && expiresAt.HasValue && expiresAt.Value <= startsAt.Value)
+            return (null, false, false, "ExpiresAt duhet te jete pas StartsAt.");
+
+        if (request.OriginalPrice.HasValue &&
+            request.DiscountedPrice.HasValue &&
+            request.DiscountedPrice.Value > request.OriginalPrice.Value)
+        {
+            return (null, false, false, "DiscountedPrice nuk mund te jete me i madh se OriginalPrice.");
+        }
+
+        promotion.Title = title;
+        promotion.Description = description;
+        promotion.Category = category;
+        promotion.OriginalPrice = request.OriginalPrice;
+        promotion.DiscountedPrice = request.DiscountedPrice;
+        promotion.StartsAt = startsAt;
+        promotion.ExpiresAt = expiresAt;
+        promotion.IsActive = request.IsActive;
+
+        await _db.SaveChangesAsync(ct);
+        await BumpVersionAsync(ct);
+
+        return (Map(promotion, promotion.Business.BusinessName), false, false, null);
+    }
+
+    public async Task<(bool NotFound, bool Forbid, string? Error)> DeleteAsync(
+        Guid actorUserId,
+        Guid promotionId,
+        CancellationToken ct)
+    {
+        var promotion = await _db.Promotions
+            .Include(p => p.Business)
+            .FirstOrDefaultAsync(p => p.Id == promotionId, ct);
+
+        if (promotion is null)
+            return (true, false, null);
+
+        if (promotion.Business.OwnerId != actorUserId)
+            return (false, true, null);
+
+        _db.Promotions.Remove(promotion);
+        await _db.SaveChangesAsync(ct);
+        await BumpVersionAsync(ct);
+
+        return (false, false, null);
     }
 
     private async Task<string> GetVersionAsync(CancellationToken ct)
@@ -141,6 +268,7 @@ public sealed class PromotionService : IPromotionService
                 version,
                 new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(30) },
                 ct);
+
             return version;
         }
         catch
@@ -215,6 +343,7 @@ public sealed class PromotionService : IPromotionService
             OriginalPrice = entity.OriginalPrice,
             DiscountedPrice = entity.DiscountedPrice,
             DiscountPercent = CalculateDiscountPercent(entity.OriginalPrice, entity.DiscountedPrice),
+            StartsAt = entity.StartsAt,
             ExpiresAt = entity.ExpiresAt,
             IsActive = entity.IsActive,
             CreatedAt = entity.CreatedAt

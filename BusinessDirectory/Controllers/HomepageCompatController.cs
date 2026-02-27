@@ -11,7 +11,7 @@ namespace BusinessDirectory.Controllers;
 
 [ApiController]
 [AllowAnonymous]
-[Route("")]
+[Route("api")]
 public sealed class HomepageCompatController : ControllerBase
 {
     private readonly ApplicationDbContext _db;

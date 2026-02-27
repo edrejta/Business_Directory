@@ -1,4 +1,3 @@
-using BusinessDirectory.Application.Dtos;
 using BusinessDirectory.Application.Dtos.Businesses;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Entities;
@@ -61,6 +60,15 @@ public sealed class AdminBusinessService : IAdminBusinessService
             return (null, false, true, "Business is already approved.");
 
         business.Status = BusinessStatus.Approved;
+
+        // When a business gets approved, elevate its owner to BusinessOwner if they are still a regular user.
+        var owner = await _db.Users.FirstOrDefaultAsync(u => u.Id == business.OwnerId, cancellationToken);
+        if (owner is not null && owner.Role == UserRole.User)
+        {
+            owner.Role = UserRole.BusinessOwner;
+            owner.UpdatedAt = DateTime.UtcNow;
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
 
         return (ToDto(business), false, false, null);
@@ -137,45 +145,65 @@ public sealed class AdminBusinessService : IAdminBusinessService
         return (ToDto(business), false, false, null);
     }
 
-    private static System.Linq.Expressions.Expression<Func<BusinessDirectory.Domain.Entities.Business, BusinessDto>> ToDtoExpression()
+    private static string OpenDaysFromMask(int mask)
+    {
+        var days = new List<string>(7);
+        if ((mask & 1) != 0) days.Add("Mon");
+        if ((mask & 2) != 0) days.Add("Tue");
+        if ((mask & 4) != 0) days.Add("Wed");
+        if ((mask & 8) != 0) days.Add("Thu");
+        if ((mask & 16) != 0) days.Add("Fri");
+        if ((mask & 32) != 0) days.Add("Sat");
+        if ((mask & 64) != 0) days.Add("Sun");
+        return days.Count == 0 ? string.Empty : string.Join(", ", days);
+    }
+
+    private static System.Linq.Expressions.Expression<Func<Business, BusinessDto>> ToDtoExpression()
     {
         return b => new BusinessDto
         {
             Id = b.Id,
             OwnerId = b.OwnerId,
             BusinessName = b.BusinessName,
+            Type = b.BusinessType.ToString(),
+            BusinessType = b.BusinessType,
             Address = b.Address,
             City = b.City,
             Email = b.Email,
             PhoneNumber = b.PhoneNumber,
-            BusinessType = b.BusinessType,
             Description = b.Description,
             ImageUrl = b.ImageUrl,
+            BusinessUrl = b.WebsiteUrl,
             Status = b.Status,
             SuspensionReason = b.SuspensionReason,
             CreatedAt = b.CreatedAt,
-            BusinessNumber = b.BusinesssNumber
+            BusinessNumber = b.BusinesssNumber,
+            OpenDays = ""
         };
     }
 
-    private static BusinessDto ToDto(BusinessDirectory.Domain.Entities.Business business)
+    private static BusinessDto ToDto(Business business)
     {
         return new BusinessDto
         {
             Id = business.Id,
             OwnerId = business.OwnerId,
             BusinessName = business.BusinessName,
+            Type = business.BusinessType.ToString(),
+            BusinessType = business.BusinessType,
             Address = business.Address,
             City = business.City,
             Email = business.Email,
             PhoneNumber = business.PhoneNumber,
-            BusinessType = business.BusinessType,
             Description = business.Description,
             ImageUrl = business.ImageUrl,
+            BusinessUrl = business.WebsiteUrl,
             Status = business.Status,
             SuspensionReason = business.SuspensionReason,
             CreatedAt = business.CreatedAt,
-            BusinessNumber = business.BusinesssNumber
+            BusinessNumber = business.BusinesssNumber,
+            OpenDays = OpenDaysFromMask(business.OpenDaysMask),
+            IsFavorite = false
         };
     }
 }

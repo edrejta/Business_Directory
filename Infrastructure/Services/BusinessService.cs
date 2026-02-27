@@ -25,6 +25,72 @@ public class BusinessService : IBusinessService
         _cache = cache;
     }
 
+    private static string TrimOrEmpty(string? value) => value?.Trim() ?? string.Empty;
+
+    private static BusinessType ParseBusinessTypeOrUnknown(string? type)
+    {
+        if (string.IsNullOrWhiteSpace(type))
+            return BusinessType.Unknown;
+
+        return Enum.TryParse<BusinessType>(type.Trim(), ignoreCase: true, out var parsed)
+            ? parsed
+            : BusinessType.Unknown;
+    }
+
+    private static string OpenDaysFromMask(int mask)
+    {
+        var days = new List<string>(7);
+        if ((mask & 1) != 0) days.Add("Mon");
+        if ((mask & 2) != 0) days.Add("Tue");
+        if ((mask & 4) != 0) days.Add("Wed");
+        if ((mask & 8) != 0) days.Add("Thu");
+        if ((mask & 16) != 0) days.Add("Fri");
+        if ((mask & 32) != 0) days.Add("Sat");
+        if ((mask & 64) != 0) days.Add("Sun");
+        return days.Count == 0 ? string.Empty : string.Join(", ", days);
+    }
+
+    private static int? TryParseOpenDaysToMask(string? input)
+    {
+        if (input is null)
+            return null;
+
+        var trimmed = input.Trim();
+        if (trimmed.Length == 0)
+            return 127;
+
+        if (int.TryParse(trimmed, out var numeric))
+        {
+            if (numeric < 0) return 0;
+            if (numeric > 127) return 127;
+            return numeric;
+        }
+
+        var tokens = trimmed
+            .Replace(";", ",")
+            .Replace("|", ",")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (tokens.Length == 0)
+            return 127;
+
+        var mask = 0;
+        foreach (var raw in tokens)
+        {
+            var t = raw.Trim().ToLowerInvariant();
+
+            if (t is "mon" or "monday") mask |= 1;
+            else if (t is "tue" or "tues" or "tuesday") mask |= 2;
+            else if (t is "wed" or "wednesday") mask |= 4;
+            else if (t is "thu" or "thur" or "thurs" or "thursday") mask |= 8;
+            else if (t is "fri" or "friday") mask |= 16;
+            else if (t is "sat" or "saturday") mask |= 32;
+            else if (t is "sun" or "sunday") mask |= 64;
+        }
+
+        return mask == 0 ? 127 : mask;
+    }
+
     public async Task<IReadOnlyList<BusinessDto>> GetApprovedAsync(
         string? search,
         string? city,
@@ -44,14 +110,14 @@ public class BusinessService : IBusinessService
         {
             var s = search.Trim().ToLowerInvariant();
             query = query.Where(b =>
-                b.BusinessName.ToLower().Contains(s) ||
-                b.Description.ToLower().Contains(s));
+                (b.BusinessName ?? string.Empty).ToLower().Contains(s) ||
+                (b.Description ?? string.Empty).ToLower().Contains(s));
         }
 
         if (!string.IsNullOrWhiteSpace(city))
         {
             var c = city.Trim().ToLowerInvariant();
-            query = query.Where(b => b.City.ToLower() == c);
+            query = query.Where(b => (b.City ?? string.Empty).ToLower() == c);
         }
 
         if (type.HasValue && type.Value != BusinessType.Unknown)
@@ -65,17 +131,27 @@ public class BusinessService : IBusinessService
             {
                 Id = b.Id,
                 OwnerId = b.OwnerId,
+
                 BusinessName = b.BusinessName,
+                Type = b.BusinessType.ToString(),
+
                 Address = b.Address,
                 City = b.City,
                 Email = b.Email,
                 PhoneNumber = b.PhoneNumber,
-                BusinessType = b.BusinessType,
+                OpenDays = OpenDaysFromMask(b.OpenDaysMask),
+
                 Description = b.Description,
                 ImageUrl = b.ImageUrl,
+
+                BusinessUrl = b.WebsiteUrl,
+
                 Status = b.Status,
                 CreatedAt = b.CreatedAt,
-                BusinessNumber = b.BusinesssNumber
+                BusinessNumber = b.BusinesssNumber,
+
+                SuspensionReason = b.SuspensionReason,
+                IsFavorite = false
             })
             .ToListAsync(ct);
 
@@ -98,16 +174,20 @@ public class BusinessService : IBusinessService
                 Id = b.Id,
                 OwnerId = b.OwnerId,
                 BusinessName = b.BusinessName,
+                Type = b.BusinessType.ToString(),
                 Address = b.Address,
                 City = b.City,
                 Email = b.Email,
                 PhoneNumber = b.PhoneNumber,
-                BusinessType = b.BusinessType,
+                OpenDays = OpenDaysFromMask(b.OpenDaysMask),
                 Description = b.Description,
                 ImageUrl = b.ImageUrl,
+                BusinessUrl = b.WebsiteUrl,
                 Status = b.Status,
                 CreatedAt = b.CreatedAt,
-                BusinessNumber = b.BusinesssNumber
+                BusinessNumber = b.BusinesssNumber,
+                SuspensionReason = b.SuspensionReason,
+                IsFavorite = false
             })
             .FirstOrDefaultAsync(ct);
 
@@ -119,45 +199,95 @@ public class BusinessService : IBusinessService
 
     public async Task<BusinessDto?> GetMineByIdAsync(Guid businessId, Guid ownerId, CancellationToken ct)
     {
-        return await _db.Businesses
-            .AsNoTracking()
+        return await _db.Businesses.AsNoTracking()
             .Where(b => b.Id == businessId && b.OwnerId == ownerId)
             .Select(b => new BusinessDto
             {
                 Id = b.Id,
                 OwnerId = b.OwnerId,
                 BusinessName = b.BusinessName,
+                Type = b.BusinessType.ToString(),
                 Address = b.Address,
                 City = b.City,
                 Email = b.Email,
                 PhoneNumber = b.PhoneNumber,
-                BusinessType = b.BusinessType,
+                OpenDays = OpenDaysFromMask(b.OpenDaysMask),
                 Description = b.Description,
                 ImageUrl = b.ImageUrl,
+                BusinessUrl = b.WebsiteUrl,
                 Status = b.Status,
                 CreatedAt = b.CreatedAt,
-                BusinessNumber = b.BusinesssNumber
+                BusinessNumber = b.BusinesssNumber,
+                SuspensionReason = b.SuspensionReason,
+                IsFavorite = false
             })
             .FirstOrDefaultAsync(ct);
     }
 
+    public async Task<IReadOnlyList<BusinessDto>> GetMineAsync(
+        Guid ownerId,
+        BusinessStatus? status,
+        CancellationToken ct)
+    {
+        var query = _db.Businesses.AsNoTracking()
+            .Where(b => b.OwnerId == ownerId);
+
+        if (status.HasValue)
+            query = query.Where(b => b.Status == status.Value);
+
+        return await query
+            .OrderByDescending(b => b.CreatedAt)
+            .Select(b => new BusinessDto
+            {
+                Id = b.Id,
+                OwnerId = b.OwnerId,
+                BusinessName = b.BusinessName,
+                Type = b.BusinessType.ToString(),
+                Address = b.Address,
+                City = b.City,
+                Email = b.Email,
+                PhoneNumber = b.PhoneNumber,
+                OpenDays = OpenDaysFromMask(b.OpenDaysMask),
+                Description = b.Description,
+                ImageUrl = b.ImageUrl,
+                BusinessUrl = b.WebsiteUrl,
+                Status = b.Status,
+                CreatedAt = b.CreatedAt,
+                BusinessNumber = b.BusinesssNumber,
+                SuspensionReason = b.SuspensionReason,
+                IsFavorite = false
+            })
+            .ToListAsync(ct);
+    }
+
     public async Task<BusinessDto> CreateAsync(BusinessCreateDto dto, Guid ownerId, CancellationToken ct)
     {
+        var parsedType = ParseBusinessTypeOrUnknown(dto.Type);
+        var openDaysMask = TryParseOpenDaysToMask(dto.OpenDays) ?? 127;
+
         var business = new Business
         {
             OwnerId = ownerId,
-            BusinessName = dto.BusinessName.Trim(),
-            Address = dto.Address.Trim(),
-            City = dto.City.Trim(),
-            Email = dto.Email.Trim().ToLowerInvariant(),
-            PhoneNumber = dto.PhoneNumber.Trim(),
-            BusinessType = dto.BusinessType,
-            Description = dto.Description.Trim(),
-            ImageUrl = dto.ImageUrl.Trim(),
+
+            BusinessName = TrimOrEmpty(dto.BusinessName),
+            BusinessType = parsedType,
+
+            City = TrimOrEmpty(dto.City),
+            Address = TrimOrEmpty(dto.Address),
+            Description = TrimOrEmpty(dto.Description),
+            PhoneNumber = TrimOrEmpty(dto.PhoneNumber),
+            ImageUrl = TrimOrEmpty(dto.ImageUrl),
+
+            WebsiteUrl = TrimOrEmpty(dto.BusinessUrl),
+
+            BusinesssNumber = TrimOrEmpty(dto.BusinessNumber),
+
+            Email = TrimOrEmpty(dto.Email),
+
+            OpenDaysMask = openDaysMask,
+
             Status = BusinessStatus.Pending,
-            CreatedAt = DateTime.UtcNow,
-            BusinesssNumber = dto.BusinessNumber,
-            WebsiteUrl = string.Empty
+            CreatedAt = DateTime.UtcNow
         };
 
         _db.Businesses.Add(business);
@@ -169,16 +299,20 @@ public class BusinessService : IBusinessService
             Id = business.Id,
             OwnerId = business.OwnerId,
             BusinessName = business.BusinessName,
+            Type = business.BusinessType.ToString(),
             Address = business.Address,
             City = business.City,
             Email = business.Email,
             PhoneNumber = business.PhoneNumber,
-            BusinessType = business.BusinessType,
+            OpenDays = OpenDaysFromMask(business.OpenDaysMask),
             Description = business.Description,
             ImageUrl = business.ImageUrl,
+            BusinessUrl = business.WebsiteUrl,
             Status = business.Status,
             CreatedAt = business.CreatedAt,
-            BusinessNumber = business.BusinesssNumber
+            BusinessNumber = business.BusinesssNumber,
+            SuspensionReason = business.SuspensionReason,
+            IsFavorite = false
         };
     }
 
@@ -199,14 +333,21 @@ public class BusinessService : IBusinessService
         if (business.Status is not (BusinessStatus.Pending or BusinessStatus.Rejected))
             return (null, false, false, "Business mund të përditësohet vetëm kur është Pending ose Rejected.");
 
-        business.BusinessName = dto.BusinessName.Trim();
-        business.Address = dto.Address.Trim();
-        business.City = dto.City.Trim();
-        business.Email = dto.Email.Trim().ToLowerInvariant();
-        business.PhoneNumber = dto.PhoneNumber.Trim();
-        business.BusinessType = dto.BusinessType;
-        business.Description = dto.Description.Trim();
-        business.ImageUrl = dto.ImageUrl.Trim();
+        business.BusinessName = TrimOrEmpty(dto.BusinessName);
+        business.BusinessType = ParseBusinessTypeOrUnknown(dto.Type);
+        business.City = TrimOrEmpty(dto.City);
+        business.Address = TrimOrEmpty(dto.Address);
+        business.Description = TrimOrEmpty(dto.Description);
+        business.PhoneNumber = TrimOrEmpty(dto.PhoneNumber);
+        business.ImageUrl = TrimOrEmpty(dto.ImageUrl);
+        business.WebsiteUrl = TrimOrEmpty(dto.BusinessUrl);
+
+        if (dto.Email is not null)
+            business.Email = TrimOrEmpty(dto.Email);
+
+        var parsedMask = TryParseOpenDaysToMask(dto.OpenDays);
+        if (parsedMask.HasValue)
+            business.OpenDaysMask = parsedMask.Value;
 
         await _db.SaveChangesAsync(ct);
         await BumpVersionAsync(ct);
@@ -216,55 +357,27 @@ public class BusinessService : IBusinessService
             Id = business.Id,
             OwnerId = business.OwnerId,
             BusinessName = business.BusinessName,
+            Type = business.BusinessType.ToString(),
             Address = business.Address,
             City = business.City,
             Email = business.Email,
             PhoneNumber = business.PhoneNumber,
-            BusinessType = business.BusinessType,
+            OpenDays = OpenDaysFromMask(business.OpenDaysMask),
             Description = business.Description,
             ImageUrl = business.ImageUrl,
+            BusinessUrl = business.WebsiteUrl,
             Status = business.Status,
             CreatedAt = business.CreatedAt,
-            BusinessNumber = business.BusinesssNumber
+            BusinessNumber = business.BusinesssNumber,
+            SuspensionReason = business.SuspensionReason,
+            IsFavorite = false
         }, false, false, null);
     }
 
-    public async Task<IReadOnlyList<BusinessDto>> GetMineAsync(
-    Guid ownerId,
-    BusinessStatus? status,
-    CancellationToken ct)
-    {
-        var query = _db.Businesses.AsNoTracking()
-            .Where(b => b.OwnerId == ownerId);
-
-        if (status.HasValue)
-            query = query.Where(b => b.Status == status.Value);
-
-        return await query
-            .OrderByDescending(b => b.CreatedAt)
-            .Select(b => new BusinessDto
-            {
-                Id = b.Id,
-                OwnerId = b.OwnerId,
-                BusinessName = b.BusinessName,
-                Address = b.Address,
-                City = b.City,
-                Email = b.Email,
-                PhoneNumber = b.PhoneNumber,
-                BusinessType = b.BusinessType,
-                Description = b.Description,
-                ImageUrl = b.ImageUrl,
-                Status = b.Status,
-                CreatedAt = b.CreatedAt,
-                BusinessNumber = b.BusinesssNumber
-            })
-            .ToListAsync(ct);
-    }
-
     public async Task<(bool NotFound, bool Forbid, string? Error)> DeleteAsync(
-    Guid id,
-    Guid ownerId,
-    CancellationToken ct)
+        Guid id,
+        Guid ownerId,
+        CancellationToken ct)
     {
         var business = await _db.Businesses.FirstOrDefaultAsync(b => b.Id == id, ct);
 

@@ -181,11 +181,9 @@ namespace BusinessDirectory.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BusinessId");
+                    b.HasIndex("UserId");
 
                     b.HasIndex("BusinessId", "CreatedAt");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("Comments");
                 });
@@ -265,14 +263,15 @@ namespace BusinessDirectory.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime?>("StartsAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BusinessId");
 
                     b.HasIndex("BusinessId", "IsActive", "ExpiresAt", "CreatedAt");
 

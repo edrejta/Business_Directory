@@ -2,11 +2,18 @@ name: CD Backend
 
 on:
   push:
-    branches: [dev, main, added-probs]
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+concurrency:
+  group: cd-backend-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
@@ -19,6 +26,7 @@ jobs:
           AKS_RESOURCE_GROUP: ${{ vars.AKS_RESOURCE_GROUP }}
           AKS_CLUSTER_NAME: ${{ vars.AKS_CLUSTER_NAME }}
         run: |
+          set -euo pipefail
           [ -n "$AZURE_CREDENTIALS" ] || { echo "Missing secret: AZURE_CREDENTIALS"; exit 1; }
           [ -n "$ACR_NAME" ] || { echo "Missing variable: ACR_NAME"; exit 1; }
           [ -n "$ACR_LOGIN_SERVER" ] || { echo "Missing variable: ACR_LOGIN_SERVER"; exit 1; }
@@ -31,14 +39,17 @@ jobs:
 
       - name: Build and push backend image
         run: |
+          set -euo pipefail
           az acr login --name ${{ vars.ACR_NAME }}
           docker build -f BusinessDirectory/Dockerfile -t ${{ vars.ACR_LOGIN_SERVER }}/businessdirectory-api:${{ github.sha }} .
           docker push ${{ vars.ACR_LOGIN_SERVER }}/businessdirectory-api:${{ github.sha }}
 
       - name: Deploy to AKS
         run: |
+          set -euo pipefail
           az aks get-credentials -g ${{ vars.AKS_RESOURCE_GROUP }} -n ${{ vars.AKS_CLUSTER_NAME }} --overwrite-existing
+          IMAGE="${{ vars.ACR_LOGIN_SERVER }}/businessdirectory-api:${{ github.sha }}"
           kubectl apply -f k8s/service.yaml
-          kubectl apply -f k8s/deployment-backend.yaml
-          kubectl -n dev set image deployment/bd-backend bd-backend=${{ vars.ACR_LOGIN_SERVER }}/businessdirectory-api:${{ github.sha }}
+          sed -E "s|^([[:space:]]*image:[[:space:]]*).*$|\1$IMAGE|" k8s/deployment-backend.yaml | kubectl -n dev apply -f -
+          kubectl -n dev annotate deployment/bd-backend kubernetes.io/change-cause="image=$IMAGE" --overwrite
           kubectl -n dev rollout status deployment/bd-backend
