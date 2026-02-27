@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc.Authorization;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -85,9 +84,7 @@ if (!string.IsNullOrWhiteSpace(redisConnectionString))
 }
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-var useSqlite = builder.Configuration.GetValue<bool>("UseSqliteForDev");
-
-if (!useSqlite && string.IsNullOrWhiteSpace(connectionString))
+if (string.IsNullOrWhiteSpace(connectionString))
 {
     throw new InvalidOperationException(
         "ConnectionStrings:DefaultConnection is missing. Set it via user-secrets or environment variables.");
@@ -95,10 +92,7 @@ if (!useSqlite && string.IsNullOrWhiteSpace(connectionString))
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    if (useSqlite)
-        options.UseSqlite("Data Source=BusinessDirectory.db");
-    else
-        options.UseSqlServer(connectionString);
+    options.UseSqlServer(connectionString);
 });
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
@@ -149,27 +143,7 @@ if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-    if (useSqlite)
-    {
-        try
-        {
-            db.Database.Migrate();
-        }
-        catch (SqliteException ex)
-        {
-            if (!db.Database.CanConnect())
-                db.Database.EnsureCreated();
-            else
-                throw new InvalidOperationException(
-                    "SQLite migration failed. Fix the migration/provider mismatch instead of recreating the database.",
-                    ex);
-        }
-    }
-    else
-    {
-        db.Database.Migrate();
-    }
+    db.Database.Migrate();
 
     app.UseSwagger();
     app.UseSwaggerUI();
