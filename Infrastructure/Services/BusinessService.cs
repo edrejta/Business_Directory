@@ -91,7 +91,7 @@ public class BusinessService : IBusinessService
         return mask == 0 ? 127 : mask;
     }
 
-    public async Task<IReadOnlyList<BusinessDto>> GetApprovedAsync(
+    public async Task<List<BusinessDto>> GetApprovedAsync(
         string? search,
         string? city,
         BusinessType? type,
@@ -101,7 +101,7 @@ public class BusinessService : IBusinessService
         var cacheKey = $"businesses:approved:{version}:search={NormalizeCacheSegment(search)}:city={NormalizeCacheSegment(city)}:type={(type?.ToString() ?? "null")}";
         var cached = await GetFromCacheAsync<IReadOnlyList<BusinessDto>>(cacheKey, ct);
         if (cached is not null)
-            return cached;
+            return cached.ToList();
 
         var query = _db.Businesses.AsNoTracking()
             .Where(b => b.Status == BusinessStatus.Approved);
@@ -224,7 +224,7 @@ public class BusinessService : IBusinessService
             .FirstOrDefaultAsync(ct);
     }
 
-    public async Task<IReadOnlyList<BusinessDto>> GetMineAsync(
+    public async Task<List<BusinessDto>> GetMineAsync(
         Guid ownerId,
         BusinessStatus? status,
         CancellationToken ct)

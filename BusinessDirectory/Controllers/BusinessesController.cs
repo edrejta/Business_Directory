@@ -20,7 +20,7 @@ public sealed class BusinessesController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("public")]
-    public async Task<ActionResult<IReadOnlyList<BusinessPublicDto>>> GetPublicApproved(
+    public async Task<ActionResult<List<BusinessPublicDto>>> GetPublicApproved(
         [FromQuery] string? search,
         [FromQuery] string? city,
         [FromQuery] BusinessType? type,
@@ -47,7 +47,7 @@ public sealed class BusinessesController : ControllerBase
 
     [Authorize]
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<BusinessDto>>> GetBusinesses(
+    public async Task<ActionResult<List<BusinessDto>>> GetBusinesses(
         [FromQuery] string? search,
         [FromQuery] string? city,
         [FromQuery] BusinessType? type,
@@ -137,7 +137,7 @@ public sealed class BusinessesController : ControllerBase
 
     [Authorize]
     [HttpGet("mine")]
-    public async Task<ActionResult<IReadOnlyList<BusinessDto>>> GetMine(
+    public async Task<ActionResult<List<BusinessDto>>> GetMine(
         [FromQuery] BusinessStatus? status,
         CancellationToken cancellationToken)
     {

@@ -22,12 +22,12 @@ public sealed class CityService : ICityService
         _cache = cache;
     }
 
-    public async Task<IReadOnlyList<CityDto>> GetAllAsync(CancellationToken ct)
+    public async Task<List<CityDto>> GetAllAsync(CancellationToken ct)
     {
         const string cacheKey = "cities:all:v1";
         var cached = await GetFromCacheAsync<IReadOnlyList<CityDto>>(cacheKey, ct);
         if (cached is not null)
-            return cached;
+            return cached.ToList();
 
         var result = await _db.Cities.AsNoTracking()
             .OrderBy(c => c.Name)
@@ -38,13 +38,13 @@ public sealed class CityService : ICityService
         return result;
     }
 
-    public async Task<IReadOnlyList<CityDto>> SearchAsync(string? search, int take, CancellationToken ct)
+    public async Task<List<CityDto>> SearchAsync(string? search, int take, CancellationToken ct)
     {
         take = take <= 0 ? 20 : Math.Min(take, 50);
         var cacheKey = $"cities:search:v1:query={NormalizeCacheSegment(search)}:take={take}";
         var cached = await GetFromCacheAsync<IReadOnlyList<CityDto>>(cacheKey, ct);
         if (cached is not null)
-            return cached;
+            return cached.ToList();
 
         var query = _db.Cities.AsNoTracking();
 

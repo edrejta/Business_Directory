@@ -4,8 +4,8 @@ namespace BusinessDirectory.Application.Interfaces
 {
     public interface ICityService
     {
-        Task<IReadOnlyList<CityDto>> GetAllAsync(CancellationToken ct);
+        Task<List<CityDto>> GetAllAsync(CancellationToken ct);
 
-        Task<IReadOnlyList<CityDto>> SearchAsync(string? search, int take, CancellationToken ct);
+        Task<List<CityDto>> SearchAsync(string? search, int take, CancellationToken ct);
     }
 }

@@ -5,7 +5,7 @@ namespace BusinessDirectory.Application.Interfaces;
 
 public interface IBusinessService
 {
-    Task<IReadOnlyList<BusinessDto>> GetApprovedAsync(
+    Task<List<BusinessDto>> GetApprovedAsync(
         string? search,
         string? city,
         BusinessType? type,
@@ -26,7 +26,7 @@ public interface IBusinessService
         Guid ownerId,
         CancellationToken ct);
 
-    Task<IReadOnlyList<BusinessDto>> GetMineAsync(
+    Task<List<BusinessDto>> GetMineAsync(
         Guid ownerId,
         BusinessStatus? status,
         CancellationToken ct);
