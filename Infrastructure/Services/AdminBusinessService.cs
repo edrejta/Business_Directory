@@ -29,16 +29,6 @@ public sealed class AdminBusinessService : IAdminBusinessService
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<BusinessDto>> GetPendingAsync(CancellationToken cancellationToken = default)
-    {
-        return await _db.Businesses
-            .AsNoTracking()
-            .Where(b => b.Status == BusinessStatus.Pending)
-            .OrderByDescending(b => b.CreatedAt)
-            .Select(ToDtoExpression())
-            .ToListAsync(cancellationToken);
-    }
-
     public async Task<BusinessDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _db.Businesses

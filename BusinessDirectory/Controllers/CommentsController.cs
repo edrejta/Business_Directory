@@ -1,5 +1,4 @@
-﻿using System.Security.Claims;
-using BusinessDirectory.Application.Dtos.Comment;
+﻿using BusinessDirectory.Application.Dtos.Comment;
 using BusinessDirectory.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -41,9 +40,19 @@ public sealed class CommentsController : ControllerBase
         if (userId is null)
             return Unauthorized();
 
-        var created = await _service.CreateAsync(userId.Value, dto, ct);
-
-        return StatusCode(StatusCodes.Status201Created, created);
+        try
+        {
+            var created = await _service.CreateAsync(userId.Value, dto, ct);
+            return StatusCode(StatusCodes.Status201Created, created);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     // PUT /api/comments/{id}
@@ -87,7 +96,6 @@ public sealed class CommentsController : ControllerBase
 
     private Guid? GetUserId()
     {
-        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return Guid.TryParse(userIdValue, out var userId) ? userId : null;
+        return User.GetActorUserId();
     }
 }

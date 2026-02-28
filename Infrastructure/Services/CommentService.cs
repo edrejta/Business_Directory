@@ -38,6 +38,13 @@ public sealed class CommentService : ICommentService
 
     public async Task<CommentDto> CreateAsync(Guid userId, CommentCreateDto dto, CancellationToken ct)
     {
+        var text = dto.Text?.Trim() ?? string.Empty;
+        if (text.Length == 0)
+            throw new ArgumentException("Text is required.", nameof(dto));
+
+        if (dto.Rate is < 1 or > 5)
+            throw new ArgumentException("Rate must be between 1 and 5.", nameof(dto));
+
         var businessExists = await _db.Businesses
             .AsNoTracking()
             .AnyAsync(b => b.Id == dto.BusinessId, ct);
@@ -50,7 +57,7 @@ public sealed class CommentService : ICommentService
             Id = Guid.NewGuid(),
             BusinessId = dto.BusinessId,
             UserId = userId,
-            Text = dto.Text.Trim(),
+            Text = text,
             Rate = dto.Rate,
             CreatedAt = DateTime.UtcNow
         };
@@ -83,7 +90,14 @@ public sealed class CommentService : ICommentService
         if (comment.UserId != userId)
             return (null, false, true, null);
 
-        comment.Text = dto.Text.Trim();
+        var text = dto.Text?.Trim() ?? string.Empty;
+        if (text.Length == 0)
+            return (null, false, false, "Text is required.");
+
+        if (dto.Rate is < 1 or > 5)
+            return (null, false, false, "Rate must be between 1 and 5.");
+
+        comment.Text = text;
         comment.Rate = dto.Rate;
 
         await _db.SaveChangesAsync(ct);

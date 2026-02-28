@@ -1,4 +1,4 @@
-using System.Security.Claims;
+using BusinessDirectory.Controllers;
 using BusinessDirectory.Application.Dtos;
 using BusinessDirectory.Application.Dtos.Businesses;
 using BusinessDirectory.Application.Interfaces;
@@ -26,13 +26,6 @@ public sealed class AdminBusinessesController : ControllerBase
         CancellationToken cancellationToken)
     {
         var businesses = await _businessService.GetAllAsync(status, cancellationToken);
-        return Ok(businesses);
-    }
-
-    [HttpGet("pending")]
-    public async Task<ActionResult<IReadOnlyList<BusinessDto>>> GetPendingBusinessesAsync(CancellationToken cancellationToken)
-    {
-        var businesses = await _businessService.GetPendingAsync(cancellationToken);
         return Ok(businesses);
     }
 
@@ -124,7 +117,6 @@ public sealed class AdminBusinessesController : ControllerBase
 
     private Guid? GetUserId()
     {
-        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return Guid.TryParse(userIdValue, out var userId) ? userId : null;
+        return User.GetActorUserId();
     }
 }

@@ -1,5 +1,4 @@
-﻿using System.Security.Claims;
-using BusinessDirectory.Application.Dtos.User;
+﻿using BusinessDirectory.Application.Dtos.User;
 using BusinessDirectory.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -59,7 +58,6 @@ public sealed class UsersController : ControllerBase
 
     private Guid? GetUserId()
     {
-        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return Guid.TryParse(userIdValue, out var userId) ? userId : null;
+        return User.GetActorUserId();
     }
 }

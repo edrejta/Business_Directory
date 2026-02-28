@@ -1,4 +1,4 @@
-using System.Security.Claims;
+using BusinessDirectory.Controllers;
 using BusinessDirectory.Application.Dtos;
 using BusinessDirectory.Application.Dtos.User;
 using BusinessDirectory.Application.Interfaces;
@@ -84,7 +84,6 @@ public sealed class AdminUsersController : ControllerBase
 
     private Guid? GetUserId()
     {
-        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return Guid.TryParse(userIdValue, out var userId) ? userId : null;
+        return User.GetActorUserId();
     }
 }

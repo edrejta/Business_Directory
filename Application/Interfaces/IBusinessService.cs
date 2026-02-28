@@ -31,11 +31,6 @@ public interface IBusinessService
         BusinessStatus? status,
         CancellationToken ct);
 
-    Task<BusinessDto?> GetMineByIdAsync(
-        Guid businessId,
-        Guid ownerId,
-        CancellationToken ct);
-
     Task<(bool NotFound, bool Forbid, string? Error)> DeleteAsync(
         Guid id,
         Guid ownerId,
