@@ -10,22 +10,35 @@ namespace BusinessDirectory.Controllers;
 public sealed class CommentsController : ControllerBase
 {
     private readonly ICommentService _service;
+    private readonly ILogger<CommentsController> _logger;
 
-    public CommentsController(ICommentService service)
+    public CommentsController(ICommentService service, ILogger<CommentsController> logger)
     {
         _service = service;
+        _logger = logger;
     }
 
     // GET /api/comments?businessId={id}&limit=50
     [HttpGet]
     [AllowAnonymous]
-    public async Task<IActionResult> GetByBusiness([FromQuery] Guid businessId, [FromQuery] int limit = 50, CancellationToken ct = default)
+    public async Task<IActionResult> GetByBusiness(
+        [FromQuery] Guid businessId,
+        [FromQuery] int limit = 50,
+        CancellationToken ct = default)
     {
         if (businessId == Guid.Empty)
             return BadRequest(new { message = "businessId is required." });
 
-        var comments = await _service.GetByBusinessAsync(businessId, limit, ct);
-        return Ok(comments);
+        try
+        {
+            var comments = await _service.GetByBusinessAsync(businessId, limit, ct);
+            return Ok(comments);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetByBusiness failed. businessId={BusinessId}, limit={Limit}", businessId, limit);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+        }
     }
 
     // POST /api/comments
@@ -47,11 +60,18 @@ public sealed class CommentsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
+            _logger.LogWarning(ex, "Create comment failed (not found). userId={UserId}", userId);
             return NotFound(new { message = ex.Message });
         }
         catch (ArgumentException ex)
         {
+            _logger.LogWarning(ex, "Create comment failed (bad request). userId={UserId}", userId);
             return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Create comment failed. userId={UserId}", userId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
         }
     }
 
@@ -67,13 +87,21 @@ public sealed class CommentsController : ControllerBase
         if (userId is null)
             return Unauthorized();
 
-        var (result, notFound, forbid, error) = await _service.UpdateAsync(id, userId.Value, dto, ct);
+        try
+        {
+            var (result, notFound, forbid, error) = await _service.UpdateAsync(id, userId.Value, dto, ct);
 
-        if (notFound) return NotFound();
-        if (forbid) return Forbid();
-        if (!string.IsNullOrWhiteSpace(error)) return BadRequest(new { message = error });
+            if (notFound) return NotFound();
+            if (forbid) return Forbid();
+            if (!string.IsNullOrWhiteSpace(error)) return BadRequest(new { message = error });
 
-        return Ok(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Update comment failed. id={CommentId}, userId={UserId}", id, userId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+        }
     }
 
     // DELETE /api/comments/{id}
@@ -85,13 +113,21 @@ public sealed class CommentsController : ControllerBase
         if (userId is null)
             return Unauthorized();
 
-        var (notFound, forbid, error) = await _service.DeleteAsync(id, userId.Value, ct);
+        try
+        {
+            var (notFound, forbid, error) = await _service.DeleteAsync(id, userId.Value, ct);
 
-        if (notFound) return NotFound();
-        if (forbid) return Forbid();
-        if (!string.IsNullOrWhiteSpace(error)) return BadRequest(new { message = error });
+            if (notFound) return NotFound();
+            if (forbid) return Forbid();
+            if (!string.IsNullOrWhiteSpace(error)) return BadRequest(new { message = error });
 
-        return NoContent();
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Delete comment failed. id={CommentId}, userId={UserId}", id, userId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+        }
     }
 
     private Guid? GetUserId()
