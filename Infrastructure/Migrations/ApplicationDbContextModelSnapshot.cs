@@ -188,24 +188,6 @@ namespace BusinessDirectory.Infrastructure.Migrations
                     b.ToTable("Comments");
                 });
 
-            modelBuilder.Entity("BusinessDirectory.Domain.Entities.Favorite", b =>
-                {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("BusinessId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("UserId", "BusinessId");
-
-                    b.HasIndex("BusinessId");
-
-                    b.ToTable("Favorites");
-                });
-
             modelBuilder.Entity("BusinessDirectory.Domain.Entities.NewsletterSubscriber", b =>
                 {
                     b.Property<Guid>("Id")
@@ -223,9 +205,10 @@ namespace BusinessDirectory.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_NewsletterSubscribers_Email");
 
-                    b.ToTable("NewsletterSubscribers");
+                    b.ToTable("NewsletterSubscribers", (string)null);
                 });
 
             modelBuilder.Entity("BusinessDirectory.Domain.Entities.Promotion", b =>
@@ -363,25 +346,6 @@ namespace BusinessDirectory.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("BusinessDirectory.Domain.Entities.Favorite", b =>
-                {
-                    b.HasOne("BusinessDirectory.Domain.Entities.Business", "Business")
-                        .WithMany("Favorites")
-                        .HasForeignKey("BusinessId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("BusinessDirectory.Domain.Entities.User", "User")
-                        .WithMany("Favorites")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Business");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("BusinessDirectory.Domain.Entities.Promotion", b =>
                 {
                     b.HasOne("BusinessDirectory.Domain.Entities.Business", "Business")
@@ -397,16 +361,12 @@ namespace BusinessDirectory.Infrastructure.Migrations
                 {
                     b.Navigation("Comments");
 
-                    b.Navigation("Favorites");
-
                     b.Navigation("Promotions");
                 });
 
             modelBuilder.Entity("BusinessDirectory.Domain.Entities.User", b =>
                 {
                     b.Navigation("Comments");
-
-                    b.Navigation("Favorites");
 
                     b.Navigation("OwnedBusinesses");
                 });

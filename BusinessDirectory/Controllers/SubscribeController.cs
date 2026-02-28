@@ -18,12 +18,28 @@ public sealed class SubscribeController : ControllerBase
 
     [HttpPost]
     [AllowAnonymous]
-    public async Task<IActionResult> Subscribe([FromBody] SubscribeRequestDto request, CancellationToken ct)
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(SubscribeResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(SubscribeResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Subscribe([FromBody] SubscribeRequestDto? request, CancellationToken ct)
     {
+        if (request is null)
+            return BadRequest(new { message = "Request body is required." });
+
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var result = await _service.SubscribeAsync(request, ct);
-        return Ok(result);
+        try
+        {
+            var result = await _service.SubscribeAsync(request, ct);
+            return result.Created
+                ? StatusCode(StatusCodes.Status201Created, result)
+                : Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

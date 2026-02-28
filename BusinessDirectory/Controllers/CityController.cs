@@ -24,15 +24,5 @@ namespace BusinessDirectory.API.Controllers
             return Ok(results);
         }
 
-        [AllowAnonymous]
-        [HttpGet("search")]
-        public async Task<ActionResult<IReadOnlyList<CityDto>>> Search(
-            [FromQuery] string? query,
-            [FromQuery] int take = 20,
-            CancellationToken ct = default)
-        {
-            var results = await _cityService.SearchAsync(query, take, ct);
-            return Ok(results);
-        }
     }
 }

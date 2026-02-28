@@ -335,7 +335,7 @@ dotnet run --project BusinessDirectory
 Ky feature e ben backend-in me te lehte per testim dhe integrim me frontend.
 
 - Shtuam `BusinessesController` me endpoint-at kryesore:
-  - `GET /api/businesses` (search, city, type) dhe kthen vetem bizneset `Approved`
+  - `GET /api/businesses/public` (search, city, type) dhe kthen vetem bizneset `Approved`
   - `GET /api/businesses/{id}`
   - `POST /api/businesses` (vetem user i kyqur)
   - `PUT /api/businesses/{id}` (vetem owner-i dhe vetem kur statusi eshte `Pending` ose `Rejected`)
