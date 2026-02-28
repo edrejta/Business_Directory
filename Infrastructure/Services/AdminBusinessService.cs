@@ -74,21 +74,62 @@ public sealed class AdminBusinessService : IAdminBusinessService
         return (ToDto(business), false, false, null);
     }
 
-    public async Task<(BusinessDto? Result, bool NotFound, bool Conflict, string? Error)> RejectAsync(
+    public async Task<(bool NotFound, bool Forbid, bool Conflict, string? Error)> DeleteAsync(
         Guid id,
+        Guid actorUserId,
+        string? reason,
+        string? ipAddress,
+        string? userAgent,
         CancellationToken cancellationToken = default)
     {
         var business = await _db.Businesses.FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
         if (business is null)
-            return (null, true, false, null);
+            return (true, false, false, null);
 
-        if (business.Status == BusinessStatus.Rejected)
-            return (null, false, true, "Business is already rejected.");
+        var actorIsAdmin = await _db.Users
+            .AsNoTracking()
+            .AnyAsync(u => u.Id == actorUserId && u.Role == UserRole.Admin, cancellationToken);
+        if (!actorIsAdmin)
+            return (false, true, false, "Only admins can delete businesses.");
 
-        business.Status = BusinessStatus.Rejected;
-        await _db.SaveChangesAsync(cancellationToken);
+        if (business.Status != BusinessStatus.Pending)
+            return (false, false, true, "Only pending businesses can be deleted.");
 
-        return (ToDto(business), false, false, null);
+        var cleanReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        var cleanIp = string.IsNullOrWhiteSpace(ipAddress) ? null : ipAddress.Trim();
+        var cleanUserAgent = string.IsNullOrWhiteSpace(userAgent) ? null : userAgent.Trim();
+        var now = DateTime.UtcNow;
+
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
+
+        _db.AuditLogs.Add(new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            ActorUserId = actorUserId,
+            Action = "BUSINESS_DELETED",
+            TargetUserId = business.OwnerId,
+            OldValue = business.Status.ToString(),
+            NewValue = "DELETED",
+            Reason = cleanReason,
+            CreatedAt = now,
+            IpAddress = cleanIp,
+            UserAgent = cleanUserAgent
+        });
+
+        _db.Businesses.Remove(business);
+
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            return (false, false, true, "Business cannot be deleted due to related data constraints.");
+        }
+
+        return (false, false, false, null);
     }
 
     public async Task<(BusinessDto? Result, bool NotFound, bool Conflict, string? Error)> SuspendAsync(

@@ -56,18 +56,40 @@ public sealed class AdminBusinessesController : ControllerBase
         return Ok(result.Result);
     }
 
-    [HttpPatch("{id:guid}/reject")]
-    public async Task<ActionResult<BusinessDto>> RejectAsync(Guid id, CancellationToken cancellationToken)
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> DeleteAsync(
+        Guid id,
+        [FromQuery] string? reason,
+        CancellationToken cancellationToken)
     {
-        var result = await _businessService.RejectAsync(id, cancellationToken);
-        if (result.NotFound)
-            return NotFound();
-        if (result.Conflict)
-            return Conflict(new { message = result.Error });
-        if (result.Error is not null)
-            return BadRequest(new { message = result.Error });
+        var actorUserId = GetUserId();
+        if (actorUserId is null)
+            return Unauthorized();
 
-        return Ok(result.Result);
+        if (reason is { Length: > 500 })
+            return BadRequest(new { message = "Reason must be at most 500 characters." });
+
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = Request.Headers["User-Agent"].ToString();
+
+        var (notFound, forbid, conflict, error) = await _businessService.DeleteAsync(
+            id,
+            actorUserId.Value,
+            reason,
+            ipAddress,
+            userAgent,
+            cancellationToken);
+
+        if (notFound)
+            return NotFound();
+        if (forbid)
+            return Forbid();
+        if (conflict)
+            return Conflict(new { message = error });
+        if (error is not null)
+            return BadRequest(new { message = error });
+
+        return NoContent();
     }
 
     [HttpPatch("{id:guid}/suspend")]

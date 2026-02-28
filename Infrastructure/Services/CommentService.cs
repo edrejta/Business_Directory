@@ -106,8 +106,15 @@ public sealed class CommentService : ICommentService
         if (comment is null)
             return (true, false, null);
 
-        if (comment.UserId != userId)
-            return (false, true, null);
+        var isOwner = comment.UserId == userId;
+        if (!isOwner)
+        {
+            var isAdmin = await _db.Users
+                .AsNoTracking()
+                .AnyAsync(u => u.Id == userId && u.Role == BusinessDirectory.Domain.Enums.UserRole.Admin, ct);
+            if (!isAdmin)
+                return (false, true, null);
+        }
 
         _db.Comments.Remove(comment);
         await _db.SaveChangesAsync(ct);
