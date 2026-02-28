@@ -27,8 +27,11 @@ public class BusinessService : IBusinessService
 
     private static string TrimOrEmpty(string? value) => value?.Trim() ?? string.Empty;
 
-    private static BusinessType ParseBusinessTypeOrUnknown(string? type)
+    private static BusinessType ParseBusinessTypeOrUnknown(string? type, BusinessType? businessType = null)
     {
+        if (businessType.HasValue && businessType.Value != BusinessType.Unknown)
+            return businessType.Value;
+
         if (string.IsNullOrWhiteSpace(type))
             return BusinessType.Unknown;
 
@@ -134,6 +137,7 @@ public class BusinessService : IBusinessService
 
                 BusinessName = b.BusinessName,
                 Type = b.BusinessType.ToString(),
+                BusinessType = b.BusinessType,
 
                 Address = b.Address,
                 City = b.City,
@@ -175,6 +179,7 @@ public class BusinessService : IBusinessService
                 OwnerId = b.OwnerId,
                 BusinessName = b.BusinessName,
                 Type = b.BusinessType.ToString(),
+                BusinessType = b.BusinessType,
                 Address = b.Address,
                 City = b.City,
                 Email = b.Email,
@@ -197,33 +202,6 @@ public class BusinessService : IBusinessService
         return result;
     }
 
-    public async Task<BusinessDto?> GetMineByIdAsync(Guid businessId, Guid ownerId, CancellationToken ct)
-    {
-        return await _db.Businesses.AsNoTracking()
-            .Where(b => b.Id == businessId && b.OwnerId == ownerId)
-            .Select(b => new BusinessDto
-            {
-                Id = b.Id,
-                OwnerId = b.OwnerId,
-                BusinessName = b.BusinessName,
-                Type = b.BusinessType.ToString(),
-                Address = b.Address,
-                City = b.City,
-                Email = b.Email,
-                PhoneNumber = b.PhoneNumber,
-                OpenDays = OpenDaysFromMask(b.OpenDaysMask),
-                Description = b.Description,
-                ImageUrl = b.ImageUrl,
-                BusinessUrl = b.WebsiteUrl,
-                Status = b.Status,
-                CreatedAt = b.CreatedAt,
-                BusinessNumber = b.BusinesssNumber,
-                SuspensionReason = b.SuspensionReason,
-                IsFavorite = false
-            })
-            .FirstOrDefaultAsync(ct);
-    }
-
     public async Task<IReadOnlyList<BusinessDto>> GetMineAsync(
         Guid ownerId,
         BusinessStatus? status,
@@ -243,6 +221,7 @@ public class BusinessService : IBusinessService
                 OwnerId = b.OwnerId,
                 BusinessName = b.BusinessName,
                 Type = b.BusinessType.ToString(),
+                BusinessType = b.BusinessType,
                 Address = b.Address,
                 City = b.City,
                 Email = b.Email,
@@ -262,7 +241,7 @@ public class BusinessService : IBusinessService
 
     public async Task<BusinessDto> CreateAsync(BusinessCreateDto dto, Guid ownerId, CancellationToken ct)
     {
-        var parsedType = ParseBusinessTypeOrUnknown(dto.Type);
+        var parsedType = ParseBusinessTypeOrUnknown(dto.Type, dto.BusinessType);
         var openDaysMask = TryParseOpenDaysToMask(dto.OpenDays) ?? 127;
 
         var business = new Business
@@ -300,6 +279,7 @@ public class BusinessService : IBusinessService
             OwnerId = business.OwnerId,
             BusinessName = business.BusinessName,
             Type = business.BusinessType.ToString(),
+            BusinessType = business.BusinessType,
             Address = business.Address,
             City = business.City,
             Email = business.Email,
@@ -334,7 +314,7 @@ public class BusinessService : IBusinessService
             return (null, false, false, "Business mund të përditësohet vetëm kur është Pending ose Rejected.");
 
         business.BusinessName = TrimOrEmpty(dto.BusinessName);
-        business.BusinessType = ParseBusinessTypeOrUnknown(dto.Type);
+        business.BusinessType = ParseBusinessTypeOrUnknown(dto.Type, dto.BusinessType);
         business.City = TrimOrEmpty(dto.City);
         business.Address = TrimOrEmpty(dto.Address);
         business.Description = TrimOrEmpty(dto.Description);
@@ -358,6 +338,7 @@ public class BusinessService : IBusinessService
             OwnerId = business.OwnerId,
             BusinessName = business.BusinessName,
             Type = business.BusinessType.ToString(),
+            BusinessType = business.BusinessType,
             Address = business.Address,
             City = business.City,
             Email = business.Email,

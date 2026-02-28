@@ -46,8 +46,6 @@ public sealed class Business
 
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
 
-    public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
-
     public ICollection<Promotion> Promotions { get; set; } = new List<Promotion>();
 
     public string WebsiteUrl { get; set; } = string.Empty;

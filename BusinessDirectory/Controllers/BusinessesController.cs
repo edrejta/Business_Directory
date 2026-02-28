@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using BusinessDirectory.Application.Dtos.Businesses;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Domain.Enums;
@@ -45,18 +44,6 @@ public sealed class BusinessesController : ControllerBase
         return Ok(publicResults);
     }
 
-    [Authorize]
-    [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<BusinessDto>>> GetBusinesses(
-        [FromQuery] string? search,
-        [FromQuery] string? city,
-        [FromQuery] BusinessType? type,
-        CancellationToken cancellationToken)
-    {
-        var results = await _businessService.GetApprovedAsync(search, city, type, cancellationToken);
-        return Ok(results);
-    }
-
     [AllowAnonymous]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<BusinessPublicDto>> GetBusinessById(Guid id, CancellationToken cancellationToken)
@@ -81,19 +68,6 @@ public sealed class BusinessesController : ControllerBase
         };
 
         return Ok(dto);
-    }
-
-    [Authorize]
-    [HttpGet("mine/{id:guid}")]
-    public async Task<ActionResult<BusinessDto>> GetMyBusinessById(Guid id, CancellationToken cancellationToken)
-    {
-        var ownerId = GetUserId();
-        if (ownerId is null)
-            return Unauthorized();
-
-        var business = await _businessService.GetMineByIdAsync(id, ownerId.Value, cancellationToken);
-
-        return business is null ? NotFound() : Ok(business);
     }
 
     [Authorize]
@@ -168,12 +142,6 @@ public sealed class BusinessesController : ControllerBase
 
     private Guid? GetUserId()
     {
-        var userIdValue =
-            User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? User.FindFirstValue("sub")
-            ?? User.FindFirstValue("id")
-            ?? User.FindFirstValue("userId");
-
-        return Guid.TryParse(userIdValue, out var userId) ? userId : null;
+        return User.GetActorUserId();
     }
 }

@@ -2,7 +2,7 @@
 
 ## Pikat kryesore
 - U shtua `HomepageController` i dedikuar per homepage me route baze `""`.
-- U shtuan endpoint-et publike per homepage: `GET /categories`, `GET /locations`, `GET /featured-businesses`, `GET /recommendations`, `GET /promotions`, `GET /reviews`, `GET /search`, `GET /businesses/{id}`, `GET /opendays`, dhe `POST /subscribe`.
+- U shtua endpoint publik per homepage compatibility: `GET /api/homepagecompat/categories`.
 - U shtua menaxhimi i promocioneve per role `BusinessOwner/Admin` me `POST /promotions` (me validime per kategori dhe cmime).
 - U shtua logjika e rekomandimeve: filtrim me kategori/lokacion dhe personalizim sipas historikut te komenteve te user-it te kycur.
 - U shtua kerkimi i avancuar: keyword, kategori, lokacion, `bbox`, radius me koordinata dhe renditje sipas `rating/createdAt`.

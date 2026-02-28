@@ -19,7 +19,6 @@ namespace Infrastructure
         public DbSet<Business> Businesses => Set<Business>();
         public DbSet<Comment> Comments => Set<Comment>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
-        public DbSet<Favorite> Favorites => Set<Favorite>();
         public DbSet<City> Cities => Set<City>();
         public DbSet<Promotion> Promotions => Set<Promotion>();
         public DbSet<NewsletterSubscriber> NewsletterSubscribers => Set<NewsletterSubscriber>();
@@ -71,21 +70,6 @@ namespace Infrastructure
                 entity.HasIndex(c => c.Name).IsUnique();
             });
 
-            modelBuilder.Entity<Favorite>(entity =>
-            {
-                entity.HasKey(f => new { f.UserId, f.BusinessId });
-
-                entity.HasOne(f => f.User)
-                    .WithMany(u => u.Favorites)
-                    .HasForeignKey(f => f.UserId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(f => f.Business)
-                    .WithMany(b => b.Favorites)
-                    .HasForeignKey(f => f.BusinessId)
-                    .OnDelete(DeleteBehavior.Cascade);
-            });
-
             modelBuilder.Entity<Promotion>(entity =>
             {
                 entity.Property(p => p.Title).HasMaxLength(120);
@@ -102,8 +86,15 @@ namespace Infrastructure
 
             modelBuilder.Entity<NewsletterSubscriber>(entity =>
             {
-                entity.Property(n => n.Email).HasMaxLength(256);
-                entity.HasIndex(n => n.Email).IsUnique();
+                entity.ToTable("NewsletterSubscribers");
+                entity.Property(n => n.Email)
+                    .IsRequired()
+                    .HasMaxLength(256);
+                entity.Property(n => n.CreatedAt)
+                    .IsRequired();
+                entity.HasIndex(n => n.Email)
+                    .HasDatabaseName("IX_NewsletterSubscribers_Email")
+                    .IsUnique();
             });
         }
     }
