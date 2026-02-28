@@ -16,7 +16,6 @@ public sealed class UsersController : ControllerBase
         _users = users;
     }
 
- 
     [HttpGet("me")]
     [Authorize]
     public async Task<IActionResult> Me(CancellationToken ct)
@@ -29,7 +28,6 @@ public sealed class UsersController : ControllerBase
         return user is null ? NotFound() : Ok(user);
     }
 
- 
     [HttpGet("{id:guid}")]
     [Authorize]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
@@ -37,7 +35,6 @@ public sealed class UsersController : ControllerBase
         var user = await _users.GetByIdAsync(id, ct);
         return user is null ? NotFound() : Ok(user);
     }
-
 
     [HttpPut("{id:guid}")]
     [Authorize]

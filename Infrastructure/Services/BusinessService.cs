@@ -6,6 +6,7 @@ using BusinessDirectory.Domain.Enums;
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace BusinessDirectory.Infrastructure.Services;
@@ -18,11 +19,16 @@ public class BusinessService : IBusinessService
 
     private readonly ApplicationDbContext _db;
     private readonly IDistributedCache _cache;
+    private readonly ILogger<BusinessService> _logger;
 
-    public BusinessService(ApplicationDbContext db, IDistributedCache cache)
+    public BusinessService(
+        ApplicationDbContext db,
+        IDistributedCache cache,
+        ILogger<BusinessService> logger)
     {
         _db = db;
         _cache = cache;
+        _logger = logger;
     }
 
     private static string TrimOrEmpty(string? value) => value?.Trim() ?? string.Empty;
@@ -241,59 +247,20 @@ public class BusinessService : IBusinessService
 
     public async Task<BusinessDto> CreateAsync(BusinessCreateDto dto, Guid ownerId, CancellationToken ct)
     {
-        var parsedType = ParseBusinessTypeOrUnknown(dto.Type, dto.BusinessType);
-        var openDaysMask = TryParseOpenDaysToMask(dto.OpenDays) ?? 127;
-
         var business = new Business
         {
             OwnerId = ownerId,
 
-            BusinessName = TrimOrEmpty(dto.BusinessName),
-            BusinessType = parsedType,
-
-            City = TrimOrEmpty(dto.City),
-            Address = TrimOrEmpty(dto.Address),
-            Description = TrimOrEmpty(dto.Description),
-            PhoneNumber = TrimOrEmpty(dto.PhoneNumber),
-            ImageUrl = TrimOrEmpty(dto.ImageUrl),
-
-            WebsiteUrl = TrimOrEmpty(dto.BusinessUrl),
-
-            BusinesssNumber = TrimOrEmpty(dto.BusinessNumber),
-
-            Email = TrimOrEmpty(dto.Email),
-
-            OpenDaysMask = openDaysMask,
-
             Status = BusinessStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };
+        ApplyBusinessCreateFields(business, dto);
 
         _db.Businesses.Add(business);
         await _db.SaveChangesAsync(ct);
         await BumpVersionAsync(ct);
 
-        return new BusinessDto
-        {
-            Id = business.Id,
-            OwnerId = business.OwnerId,
-            BusinessName = business.BusinessName,
-            Type = business.BusinessType.ToString(),
-            BusinessType = business.BusinessType,
-            Address = business.Address,
-            City = business.City,
-            Email = business.Email,
-            PhoneNumber = business.PhoneNumber,
-            OpenDays = OpenDaysFromMask(business.OpenDaysMask),
-            Description = business.Description,
-            ImageUrl = business.ImageUrl,
-            BusinessUrl = business.WebsiteUrl,
-            Status = business.Status,
-            CreatedAt = business.CreatedAt,
-            BusinessNumber = business.BusinesssNumber,
-            SuspensionReason = business.SuspensionReason,
-            IsFavorite = false
-        };
+        return MapBusinessToDto(business);
     }
 
     public async Task<(BusinessDto? Result, bool NotFound, bool Forbid, string? Error)> UpdateAsync(
@@ -313,46 +280,12 @@ public class BusinessService : IBusinessService
         if (business.Status is not (BusinessStatus.Pending or BusinessStatus.Rejected))
             return (null, false, false, "Business mund të përditësohet vetëm kur është Pending ose Rejected.");
 
-        business.BusinessName = TrimOrEmpty(dto.BusinessName);
-        business.BusinessType = ParseBusinessTypeOrUnknown(dto.Type, dto.BusinessType);
-        business.City = TrimOrEmpty(dto.City);
-        business.Address = TrimOrEmpty(dto.Address);
-        business.Description = TrimOrEmpty(dto.Description);
-        business.PhoneNumber = TrimOrEmpty(dto.PhoneNumber);
-        business.ImageUrl = TrimOrEmpty(dto.ImageUrl);
-        business.WebsiteUrl = TrimOrEmpty(dto.BusinessUrl);
-
-        if (dto.Email is not null)
-            business.Email = TrimOrEmpty(dto.Email);
-
-        var parsedMask = TryParseOpenDaysToMask(dto.OpenDays);
-        if (parsedMask.HasValue)
-            business.OpenDaysMask = parsedMask.Value;
+        ApplyBusinessUpdateFields(business, dto);
 
         await _db.SaveChangesAsync(ct);
         await BumpVersionAsync(ct);
 
-        return (new BusinessDto
-        {
-            Id = business.Id,
-            OwnerId = business.OwnerId,
-            BusinessName = business.BusinessName,
-            Type = business.BusinessType.ToString(),
-            BusinessType = business.BusinessType,
-            Address = business.Address,
-            City = business.City,
-            Email = business.Email,
-            PhoneNumber = business.PhoneNumber,
-            OpenDays = OpenDaysFromMask(business.OpenDaysMask),
-            Description = business.Description,
-            ImageUrl = business.ImageUrl,
-            BusinessUrl = business.WebsiteUrl,
-            Status = business.Status,
-            CreatedAt = business.CreatedAt,
-            BusinessNumber = business.BusinesssNumber,
-            SuspensionReason = business.SuspensionReason,
-            IsFavorite = false
-        }, false, false, null);
+        return (MapBusinessToDto(business), false, false, null);
     }
 
     public async Task<(bool NotFound, bool Forbid, string? Error)> DeleteAsync(
@@ -396,6 +329,7 @@ public class BusinessService : IBusinessService
         }
         catch
         {
+            _logger.LogWarning("Falling back to default business cache version due to cache read/write error.");
             return "v1";
         }
     }
@@ -413,6 +347,7 @@ public class BusinessService : IBusinessService
         }
         catch
         {
+            _logger.LogWarning("Failed to bump business cache version.");
         }
     }
 
@@ -423,8 +358,9 @@ public class BusinessService : IBusinessService
             var json = await _cache.GetStringAsync(key, ct);
             return string.IsNullOrWhiteSpace(json) ? default : JsonSerializer.Deserialize<T>(json, CacheJsonOptions);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to read business data from cache key {CacheKey}.", key);
             return default;
         }
     }
@@ -440,8 +376,9 @@ public class BusinessService : IBusinessService
                 new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl },
                 ct);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to write business data to cache key {CacheKey}.", key);
         }
     }
 
@@ -451,5 +388,64 @@ public class BusinessService : IBusinessService
             return "null";
 
         return Uri.EscapeDataString(value.Trim().ToLowerInvariant());
+    }
+
+    private static void ApplyBusinessCreateFields(Business business, BusinessCreateDto dto)
+    {
+        business.BusinessName = TrimOrEmpty(dto.BusinessName);
+        business.BusinessType = ParseBusinessTypeOrUnknown(dto.Type, dto.BusinessType);
+        business.City = TrimOrEmpty(dto.City);
+        business.Address = TrimOrEmpty(dto.Address);
+        business.Description = TrimOrEmpty(dto.Description);
+        business.PhoneNumber = TrimOrEmpty(dto.PhoneNumber);
+        business.ImageUrl = TrimOrEmpty(dto.ImageUrl);
+        business.WebsiteUrl = TrimOrEmpty(dto.BusinessUrl);
+        business.BusinesssNumber = TrimOrEmpty(dto.BusinessNumber);
+        business.Email = TrimOrEmpty(dto.Email);
+        business.OpenDaysMask = TryParseOpenDaysToMask(dto.OpenDays) ?? 127;
+    }
+
+    private static void ApplyBusinessUpdateFields(Business business, BusinessUpdateDto dto)
+    {
+        business.BusinessName = TrimOrEmpty(dto.BusinessName);
+        business.BusinessType = ParseBusinessTypeOrUnknown(dto.Type, dto.BusinessType);
+        business.City = TrimOrEmpty(dto.City);
+        business.Address = TrimOrEmpty(dto.Address);
+        business.Description = TrimOrEmpty(dto.Description);
+        business.PhoneNumber = TrimOrEmpty(dto.PhoneNumber);
+        business.ImageUrl = TrimOrEmpty(dto.ImageUrl);
+        business.WebsiteUrl = TrimOrEmpty(dto.BusinessUrl);
+
+        if (dto.Email is not null)
+            business.Email = TrimOrEmpty(dto.Email);
+
+        var parsedMask = TryParseOpenDaysToMask(dto.OpenDays);
+        if (parsedMask.HasValue)
+            business.OpenDaysMask = parsedMask.Value;
+    }
+
+    private static BusinessDto MapBusinessToDto(Business business)
+    {
+        return new BusinessDto
+        {
+            Id = business.Id,
+            OwnerId = business.OwnerId,
+            BusinessName = business.BusinessName,
+            Type = business.BusinessType.ToString(),
+            BusinessType = business.BusinessType,
+            Address = business.Address,
+            City = business.City,
+            Email = business.Email,
+            PhoneNumber = business.PhoneNumber,
+            OpenDays = OpenDaysFromMask(business.OpenDaysMask),
+            Description = business.Description,
+            ImageUrl = business.ImageUrl,
+            BusinessUrl = business.WebsiteUrl,
+            Status = business.Status,
+            CreatedAt = business.CreatedAt,
+            BusinessNumber = business.BusinesssNumber,
+            SuspensionReason = business.SuspensionReason,
+            IsFavorite = false
+        };
     }
 }
