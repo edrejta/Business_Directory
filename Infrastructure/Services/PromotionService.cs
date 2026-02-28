@@ -4,6 +4,7 @@ using BusinessDirectory.Domain.Entities;
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace BusinessDirectory.Infrastructure.Services;
@@ -23,11 +24,16 @@ public sealed class PromotionService : IPromotionService
 
     private readonly ApplicationDbContext _db;
     private readonly IDistributedCache _cache;
+    private readonly ILogger<PromotionService> _logger;
 
-    public PromotionService(ApplicationDbContext db, IDistributedCache cache)
+    public PromotionService(
+        ApplicationDbContext db,
+        IDistributedCache cache,
+        ILogger<PromotionService> logger)
     {
         _db = db;
         _cache = cache;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<PromotionResponseDto>> GetAsync(GetPromotionsQueryDto query, CancellationToken ct)
@@ -92,46 +98,29 @@ public sealed class PromotionService : IPromotionService
         if (business.OwnerId != actorUserId)
             return (null, false, true, null);
 
-        var title = request.Title?.Trim() ?? string.Empty;
-        var description = request.Description?.Trim() ?? string.Empty;
-
-        if (title.Length == 0)
-            return (null, false, false, "Title eshte i detyrueshem.");
-
-        if (description.Length == 0)
-            return (null, false, false, "Description eshte i detyrueshem.");
-
-        var category = NormalizeCategory(request.Category);
-        if (category is null)
-            return (null, false, false, "Category duhet te jete Discounts, FlashSales ose EarlyAccess.");
-
-        var startsAt = request.StartsAt;
-        var expiresAt = request.ExpiresAt;
-
-        if (startsAt.HasValue && expiresAt.HasValue && expiresAt.Value <= startsAt.Value)
-            return (null, false, false, "ExpiresAt duhet te jete pas StartsAt.");
-
-        if (expiresAt.HasValue && expiresAt.Value <= DateTime.UtcNow)
-            return (null, false, false, "ExpiresAt duhet te jete ne te ardhmen.");
-
-        if (request.OriginalPrice.HasValue &&
-            request.DiscountedPrice.HasValue &&
-            request.DiscountedPrice.Value > request.OriginalPrice.Value)
-        {
-            return (null, false, false, "DiscountedPrice nuk mund te jete me i madh se OriginalPrice.");
-        }
+        var validation = ValidateAndNormalizeRequest(
+            request.Title,
+            request.Description,
+            request.Category,
+            request.StartsAt,
+            request.ExpiresAt,
+            request.OriginalPrice,
+            request.DiscountedPrice,
+            requireFutureExpiry: true);
+        if (validation.Error is not null)
+            return (null, false, false, validation.Error);
 
         var entity = new Promotion
         {
             Id = Guid.NewGuid(),
             BusinessId = request.BusinessId,
-            Title = title,
-            Description = description,
-            Category = category,
+            Title = validation.Title,
+            Description = validation.Description,
+            Category = validation.Category!,
             OriginalPrice = request.OriginalPrice,
             DiscountedPrice = request.DiscountedPrice,
-            StartsAt = startsAt,
-            ExpiresAt = expiresAt,
+            StartsAt = request.StartsAt,
+            ExpiresAt = request.ExpiresAt,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -191,39 +180,25 @@ public sealed class PromotionService : IPromotionService
         if (promotion.Business.OwnerId != actorUserId)
             return (null, false, true, null);
 
-        var title = request.Title?.Trim() ?? string.Empty;
-        var description = request.Description?.Trim() ?? string.Empty;
+        var validation = ValidateAndNormalizeRequest(
+            request.Title,
+            request.Description,
+            request.Category,
+            request.StartsAt,
+            request.ExpiresAt,
+            request.OriginalPrice,
+            request.DiscountedPrice,
+            requireFutureExpiry: false);
+        if (validation.Error is not null)
+            return (null, false, false, validation.Error);
 
-        if (title.Length == 0)
-            return (null, false, false, "Title eshte i detyrueshem.");
-
-        if (description.Length == 0)
-            return (null, false, false, "Description eshte i detyrueshem.");
-
-        var category = NormalizeCategory(request.Category);
-        if (category is null)
-            return (null, false, false, "Category duhet te jete Discounts, FlashSales ose EarlyAccess.");
-
-        var startsAt = request.StartsAt;
-        var expiresAt = request.ExpiresAt;
-
-        if (startsAt.HasValue && expiresAt.HasValue && expiresAt.Value <= startsAt.Value)
-            return (null, false, false, "ExpiresAt duhet te jete pas StartsAt.");
-
-        if (request.OriginalPrice.HasValue &&
-            request.DiscountedPrice.HasValue &&
-            request.DiscountedPrice.Value > request.OriginalPrice.Value)
-        {
-            return (null, false, false, "DiscountedPrice nuk mund te jete me i madh se OriginalPrice.");
-        }
-
-        promotion.Title = title;
-        promotion.Description = description;
-        promotion.Category = category;
+        promotion.Title = validation.Title;
+        promotion.Description = validation.Description;
+        promotion.Category = validation.Category!;
         promotion.OriginalPrice = request.OriginalPrice;
         promotion.DiscountedPrice = request.DiscountedPrice;
-        promotion.StartsAt = startsAt;
-        promotion.ExpiresAt = expiresAt;
+        promotion.StartsAt = request.StartsAt;
+        promotion.ExpiresAt = request.ExpiresAt;
         promotion.IsActive = request.IsActive;
 
         await _db.SaveChangesAsync(ct);
@@ -273,6 +248,7 @@ public sealed class PromotionService : IPromotionService
         }
         catch
         {
+            _logger.LogWarning("Falling back to default promotions cache version due to cache read/write error.");
             return "v1";
         }
     }
@@ -290,6 +266,7 @@ public sealed class PromotionService : IPromotionService
         }
         catch
         {
+            _logger.LogWarning("Failed to bump promotions cache version.");
         }
     }
 
@@ -300,8 +277,9 @@ public sealed class PromotionService : IPromotionService
             var json = await _cache.GetStringAsync(key, ct);
             return string.IsNullOrWhiteSpace(json) ? default : JsonSerializer.Deserialize<T>(json, CacheJsonOptions);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to read promotions data from cache key {CacheKey}.", key);
             return default;
         }
     }
@@ -317,8 +295,9 @@ public sealed class PromotionService : IPromotionService
                 new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl },
                 ct);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to write promotions data to cache key {CacheKey}.", key);
         }
     }
 
@@ -366,5 +345,43 @@ public sealed class PromotionService : IPromotionService
 
         var value = (int)Math.Round(((originalPrice.Value - discountedPrice.Value) / originalPrice.Value) * 100m);
         return Math.Clamp(value, 0, 100);
+    }
+
+    private static (string Title, string Description, string? Category, string? Error) ValidateAndNormalizeRequest(
+        string? titleInput,
+        string? descriptionInput,
+        string? categoryInput,
+        DateTime? startsAt,
+        DateTime? expiresAt,
+        decimal? originalPrice,
+        decimal? discountedPrice,
+        bool requireFutureExpiry)
+    {
+        var title = titleInput?.Trim() ?? string.Empty;
+        if (title.Length == 0)
+            return (string.Empty, string.Empty, null, "Title eshte i detyrueshem.");
+
+        var description = descriptionInput?.Trim() ?? string.Empty;
+        if (description.Length == 0)
+            return (string.Empty, string.Empty, null, "Description eshte i detyrueshem.");
+
+        var category = NormalizeCategory(categoryInput);
+        if (category is null)
+            return (string.Empty, string.Empty, null, "Category duhet te jete Discounts, FlashSales ose EarlyAccess.");
+
+        if (startsAt.HasValue && expiresAt.HasValue && expiresAt.Value <= startsAt.Value)
+            return (string.Empty, string.Empty, null, "ExpiresAt duhet te jete pas StartsAt.");
+
+        if (requireFutureExpiry && expiresAt.HasValue && expiresAt.Value <= DateTime.UtcNow)
+            return (string.Empty, string.Empty, null, "ExpiresAt duhet te jete ne te ardhmen.");
+
+        if (originalPrice.HasValue &&
+            discountedPrice.HasValue &&
+            discountedPrice.Value > originalPrice.Value)
+        {
+            return (string.Empty, string.Empty, null, "DiscountedPrice nuk mund te jete me i madh se OriginalPrice.");
+        }
+
+        return (title, description, category, null);
     }
 }

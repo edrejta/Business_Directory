@@ -6,12 +6,11 @@ using BusinessDirectory.Application.Options;
 using BusinessDirectory.Domain.Entities;
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using BusinessDirectory.Domain.Enums;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using BusinessDirectory.Application.Dtos.User;
 using BusinessDirectory.Application.Dtos.Auth;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Infrastructure.Services;
 
