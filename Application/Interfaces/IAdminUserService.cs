@@ -16,7 +16,7 @@ public interface IAdminUserService
         string? ipAddress,
         string? userAgent,
         CancellationToken cancellationToken = default);
-    Task<(bool NotFound, bool Forbid, string? Error)> DeleteUserAsync(
+    Task<(bool NotFound, bool Forbid, bool Conflict, string? Error)> DeleteUserAsync(
         Guid actorUserId,
         Guid targetUserId,
         string? reason,

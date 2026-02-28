@@ -130,7 +130,7 @@ public sealed class AdminUserService : IAdminUserService
         });
     }
 
-    public async Task<(bool NotFound, bool Forbid, string? Error)> DeleteUserAsync(
+    public async Task<(bool NotFound, bool Forbid, bool Conflict, string? Error)> DeleteUserAsync(
         Guid actorUserId,
         Guid targetUserId,
         string? reason,
@@ -142,29 +142,29 @@ public sealed class AdminUserService : IAdminUserService
             .AsNoTracking()
             .AnyAsync(u => u.Id == actorUserId && u.Role == UserRole.Admin, cancellationToken);
         if (!actorIsAdmin)
-            return (false, true, "Only admins can delete users.");
+            return (false, true, false, "Only admins can delete users.");
 
         var target = await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUserId, cancellationToken);
         if (target is null)
-            return (true, false, null);
+            return (true, false, false, null);
 
         if (actorUserId == targetUserId)
-            return (false, true, "You cannot delete your own account.");
+            return (false, true, false, "You cannot delete your own account.");
 
         if (target.Role == UserRole.Admin)
         {
             var adminCount = await _db.Users.CountAsync(u => u.Role == UserRole.Admin, cancellationToken);
             if (adminCount <= 1)
-                return (false, false, "Cannot delete the last admin user.");
+                return (false, false, true, "Cannot delete the last admin user.");
         }
 
         var hasBusinesses = await _db.Businesses.AnyAsync(b => b.OwnerId == targetUserId, cancellationToken);
         if (hasBusinesses)
-            return (false, false, "User owns businesses. Delete/reassign those first.");
+            return (false, false, true, "User owns businesses. Delete/reassign those first.");
 
         var hasComments = await _db.Comments.AnyAsync(c => c.UserId == targetUserId, cancellationToken);
         if (hasComments)
-            return (false, false, "User has comments. Delete those first.");
+            return (false, false, true, "User has comments. Delete those first.");
 
         var cleanReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
         var cleanIp = string.IsNullOrWhiteSpace(ipAddress) ? null : ipAddress.Trim();
@@ -189,9 +189,17 @@ public sealed class AdminUserService : IAdminUserService
 
         _db.Users.Remove(target);
 
-        await _db.SaveChangesAsync(cancellationToken);
-        await tx.CommitAsync(cancellationToken);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            return (false, false, true, "User cannot be deleted due to related records.");
+        }
 
-        return (false, false, null);
+        return (false, false, false, null);
     }
 }

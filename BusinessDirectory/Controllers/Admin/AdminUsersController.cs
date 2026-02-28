@@ -61,10 +61,13 @@ public sealed class AdminUsersController : ControllerBase
         if (actorUserId is null)
             return Unauthorized();
 
+        if (reason is { Length: > 500 })
+            return BadRequest(new { message = "Reason must be at most 500 characters." });
+
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var userAgent = Request.Headers["User-Agent"].ToString();
 
-        var (notFound, forbid, error) = await _userService.DeleteUserAsync(
+        var (notFound, forbid, conflict, error) = await _userService.DeleteUserAsync(
             actorUserId.Value,
             id,
             reason,
@@ -74,6 +77,7 @@ public sealed class AdminUsersController : ControllerBase
 
         if (notFound) return NotFound();
         if (forbid) return Forbid();
+        if (conflict) return Conflict(new { message = error });
         if (!string.IsNullOrWhiteSpace(error)) return BadRequest(new { message = error });
         return NoContent();
     }

@@ -56,7 +56,7 @@ namespace Infrastructure
                 entity.HasOne(a => a.TargetUser)
                     .WithMany()
                     .HasForeignKey(a => a.TargetUserId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<User>(entity =>
