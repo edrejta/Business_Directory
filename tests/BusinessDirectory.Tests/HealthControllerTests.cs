@@ -1,5 +1,6 @@
 using BusinessDirectory.API.Controllers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace BusinessDirectory.Tests;
 
@@ -8,7 +9,7 @@ public sealed class HealthControllerTests
     [Fact]
     public void Health_ReturnsOkWithStatusAndVersion()
     {
-        var sut = new HealthController();
+        var sut = new HealthController(NullLogger<HealthController>.Instance);
 
         var result = sut.Health();
 

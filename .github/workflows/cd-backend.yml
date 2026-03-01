@@ -2,9 +2,9 @@ name: CD Backend
 
 on:
   push:
-    branches: [dev, main]
+    branches: [main]
   pull_request:
-    branches: [dev, main]
+    branches: [main]
 
 concurrency:
   group: cd-${{ github.workflow }}-${{ github.ref }}
