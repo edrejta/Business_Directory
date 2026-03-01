@@ -8,21 +8,36 @@ namespace BusinessDirectory.API.Controllers;
 [Route("api/[controller]")]
 public sealed class HealthController : ControllerBase
 {
+    private readonly ILogger<HealthController> _logger;
+
+    public HealthController(ILogger<HealthController> logger)
+    {
+        _logger = logger;
+    }
+
     [AllowAnonymous]
     [HttpGet]
     public IActionResult Health()
     {
-        var assembly = Assembly.GetExecutingAssembly();
-        var version =
-            assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-            ?? assembly.GetName().Version?.ToString()
-            ?? "unknown";
-
-        return Ok(new
+        try
         {
-            status = "ok",
-            timestamp = DateTime.UtcNow,
-            version
-        });
+            var assembly = Assembly.GetExecutingAssembly();
+            var version =
+                assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                ?? assembly.GetName().Version?.ToString()
+                ?? "unknown";
+
+            return Ok(new
+            {
+                status = "ok",
+                timestamp = DateTime.UtcNow,
+                version
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Health endpoint failed.");
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+        }
     }
 }

@@ -11,10 +11,12 @@ namespace BusinessDirectory.Controllers;
 public sealed class BusinessesController : ControllerBase
 {
     private readonly IBusinessService _businessService;
+    private readonly ILogger<BusinessesController> _logger;
 
-    public BusinessesController(IBusinessService businessService)
+    public BusinessesController(IBusinessService businessService, ILogger<BusinessesController> logger)
     {
         _businessService = businessService;
+        _logger = logger;
     }
 
     [AllowAnonymous]
@@ -25,11 +27,31 @@ public sealed class BusinessesController : ControllerBase
         [FromQuery] BusinessType? type,
         CancellationToken cancellationToken)
     {
-        var results = await _businessService.GetApprovedAsync(search, city, type, cancellationToken);
+        try
+        {
+            var results = await _businessService.GetApprovedAsync(search, city, type, cancellationToken);
 
-        var publicResults = results.Select(MapToPublic).ToList();
+            var publicResults = results.Select(b => new BusinessPublicDto
+            {
+                Id = b.Id,
+                BusinessName = b.BusinessName,
+                Description = b.Description,
+                City = b.City,
+                Address = b.Address,
+                Category = b.BusinessType.ToString(),
+                PhoneNumber = b.PhoneNumber,
+                Email = b.Email,
+                OpenDays = b.OpenDays,
+                ImageUrl = b.ImageUrl
+            }).ToList();
 
-        return Ok(publicResults);
+            return Ok(publicResults);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetPublicApproved failed. search={Search}, city={City}, type={Type}", search, city, type);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+        }
     }
 
 
@@ -37,14 +59,34 @@ public sealed class BusinessesController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<BusinessPublicDto>> GetBusinessById(Guid id, CancellationToken cancellationToken)
     {
-        var business = await _businessService.GetApprovedByIdAsync(id, cancellationToken);
+        try
+        {
+            var business = await _businessService.GetApprovedByIdAsync(id, cancellationToken);
 
-        if (business is null)
-            return NotFound();
+            if (business is null)
+                return NotFound();
 
-        var dto = MapToPublic(business);
+            var dto = new BusinessPublicDto
+            {
+                Id = business.Id,
+                BusinessName = business.BusinessName,
+                Description = business.Description,
+                City = business.City,
+                Address = business.Address,
+                Category = business.BusinessType.ToString(),
+                PhoneNumber = business.PhoneNumber,
+                Email = business.Email,
+                OpenDays = business.OpenDays,
+                ImageUrl = business.ImageUrl
+            };
 
-        return Ok(dto);
+            return Ok(dto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetBusinessById failed. id={BusinessId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+        }
     }
 
     [Authorize]
@@ -53,12 +95,20 @@ public sealed class BusinessesController : ControllerBase
         [FromBody] BusinessCreateDto dto,
         CancellationToken cancellationToken)
     {
-        var ownerId = GetUserId();
-        if (ownerId is null)
-            return Unauthorized();
+        try
+        {
+            var ownerId = GetUserId();
+            if (ownerId is null)
+                return Unauthorized();
 
-        var response = await _businessService.CreateAsync(dto, ownerId.Value, cancellationToken);
-        return StatusCode(StatusCodes.Status201Created, response);
+            var response = await _businessService.CreateAsync(dto, ownerId.Value, cancellationToken);
+            return StatusCode(StatusCodes.Status201Created, response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "CreateBusiness failed.");
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+        }
     }
 
     [Authorize]
@@ -68,22 +118,30 @@ public sealed class BusinessesController : ControllerBase
         [FromBody] BusinessUpdateDto dto,
         CancellationToken cancellationToken)
     {
-        var ownerId = GetUserId();
-        if (ownerId is null)
-            return Unauthorized();
+        try
+        {
+            var ownerId = GetUserId();
+            if (ownerId is null)
+                return Unauthorized();
 
-        var result = await _businessService.UpdateAsync(id, dto, ownerId.Value, cancellationToken);
+            var result = await _businessService.UpdateAsync(id, dto, ownerId.Value, cancellationToken);
 
-        if (result.NotFound)
-            return NotFound();
+            if (result.NotFound)
+                return NotFound();
 
-        if (result.Forbid)
-            return Forbid();
+            if (result.Forbid)
+                return Forbid();
 
-        if (result.Error is not null)
-            return BadRequest(new { message = result.Error });
+            if (result.Error is not null)
+                return BadRequest(new { message = result.Error });
 
-        return Ok(result.Result);
+            return Ok(result.Result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "UpdateBusiness failed. id={BusinessId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+        }
     }
 
     [Authorize]
@@ -92,52 +150,49 @@ public sealed class BusinessesController : ControllerBase
         [FromQuery] BusinessStatus? status,
         CancellationToken cancellationToken)
     {
-        var ownerId = GetUserId();
-        if (ownerId is null)
-            return Unauthorized();
+        try
+        {
+            var ownerId = GetUserId();
+            if (ownerId is null)
+                return Unauthorized();
 
-        var results = await _businessService.GetMineAsync(ownerId.Value, status, cancellationToken);
-        return Ok(results);
+            var results = await _businessService.GetMineAsync(ownerId.Value, status, cancellationToken);
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetMine failed. status={Status}", status);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+        }
     }
 
     [Authorize]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteBusiness(Guid id, CancellationToken cancellationToken)
     {
-        var ownerId = GetUserId();
-        if (ownerId is null)
-            return Unauthorized();
+        try
+        {
+            var ownerId = GetUserId();
+            if (ownerId is null)
+                return Unauthorized();
 
-        var result = await _businessService.DeleteAsync(id, ownerId.Value, cancellationToken);
+            var result = await _businessService.DeleteAsync(id, ownerId.Value, cancellationToken);
 
-        if (result.NotFound) return NotFound();
-        if (result.Forbid) return Forbid();
-        if (result.Error is not null) return BadRequest(new { message = result.Error });
+            if (result.NotFound) return NotFound();
+            if (result.Forbid) return Forbid();
+            if (result.Error is not null) return BadRequest(new { message = result.Error });
 
-        return NoContent();
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "DeleteBusiness failed. id={BusinessId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+        }
     }
 
     private Guid? GetUserId()
     {
         return User.GetActorUserId();
     }
-
-    // helper to avoid duplicating object projection code
-    private static BusinessPublicDto MapToPublic(BusinessDto b)
-    {
-        return new BusinessPublicDto
-        {
-            Id = b.Id,
-            BusinessName = b.BusinessName,
-            Description = b.Description,
-            City = b.City,
-            Address = b.Address,
-            Category = b.BusinessType.ToString(),
-            PhoneNumber = b.PhoneNumber,
-            Email = b.Email,
-            OpenDays = b.OpenDays,
-            ImageUrl = b.ImageUrl
-        };
-    }
-
 }
