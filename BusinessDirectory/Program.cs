@@ -86,6 +86,7 @@ if (!string.IsNullOrWhiteSpace(redisConnectionString))
 }
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+Console.WriteLine("DEBUG: resolved DefaultConnection = '{0}'", connectionString);
 if (string.IsNullOrWhiteSpace(connectionString))
 {
     throw new InvalidOperationException(
@@ -148,6 +149,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// add a simple response header for all requests; no client action is required
+// to "use" it, but it allows ops to spot the API version without changing
+// frontend code.
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-App-Version"] = "1.0";
+    await next();
+});
 
 using (var scope = app.Services.CreateScope())
 {

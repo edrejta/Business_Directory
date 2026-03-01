@@ -27,22 +27,11 @@ public sealed class BusinessesController : ControllerBase
     {
         var results = await _businessService.GetApprovedAsync(search, city, type, cancellationToken);
 
-        var publicResults = results.Select(b => new BusinessPublicDto
-        {
-            Id = b.Id,
-            BusinessName = b.BusinessName,
-            Description = b.Description,
-            City = b.City,
-            Address = b.Address,
-            Category = b.BusinessType.ToString(),
-            PhoneNumber = b.PhoneNumber,
-            Email = b.Email,
-            OpenDays = b.OpenDays,
-            ImageUrl = b.ImageUrl
-        }).ToList();
+        var publicResults = results.Select(MapToPublic).ToList();
 
         return Ok(publicResults);
     }
+
 
     [AllowAnonymous]
     [HttpGet("{id:guid}")]
@@ -53,19 +42,7 @@ public sealed class BusinessesController : ControllerBase
         if (business is null)
             return NotFound();
 
-        var dto = new BusinessPublicDto
-        {
-            Id = business.Id,
-            BusinessName = business.BusinessName,
-            Description = business.Description,
-            City = business.City,
-            Address = business.Address,
-            Category = business.BusinessType.ToString(),
-            PhoneNumber = business.PhoneNumber,
-            Email = business.Email,
-            OpenDays = business.OpenDays,
-            ImageUrl = business.ImageUrl
-        };
+        var dto = MapToPublic(business);
 
         return Ok(dto);
     }
@@ -144,4 +121,23 @@ public sealed class BusinessesController : ControllerBase
     {
         return User.GetActorUserId();
     }
+
+    // helper to avoid duplicating object projection code
+    private static BusinessPublicDto MapToPublic(BusinessDto b)
+    {
+        return new BusinessPublicDto
+        {
+            Id = b.Id,
+            BusinessName = b.BusinessName,
+            Description = b.Description,
+            City = b.City,
+            Address = b.Address,
+            Category = b.BusinessType.ToString(),
+            PhoneNumber = b.PhoneNumber,
+            Email = b.Email,
+            OpenDays = b.OpenDays,
+            ImageUrl = b.ImageUrl
+        };
+    }
+
 }
