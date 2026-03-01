@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text;
 using BusinessDirectory.Application.Interfaces;
 using BusinessDirectory.Application.Options;
@@ -72,7 +73,7 @@ builder.Services.AddCors(options =>
         policy.WithOrigins("http://localhost:3000", "https://localhost:3000")
             .AllowAnyMethod()
             .AllowAnyHeader()
-            .WithExposedHeaders("Content-Disposition");
+            .WithExposedHeaders("Content-Disposition", "X-App-Version");
     });
 });
 
@@ -86,7 +87,6 @@ if (!string.IsNullOrWhiteSpace(redisConnectionString))
 }
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-Console.WriteLine("DEBUG: resolved DefaultConnection = '{0}'", connectionString);
 if (string.IsNullOrWhiteSpace(connectionString))
 {
     throw new InvalidOperationException(
@@ -150,15 +150,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// add a simple response header for all requests; no client action is required
-// to "use" it, but it allows ops to spot the API version without changing
-// frontend code.
-app.Use(async (context, next) =>
-{
-    context.Response.Headers["X-App-Version"] = "1.0";
-    await next();
-});
-
 using (var scope = app.Services.CreateScope())
 {
     var adminSeeder = scope.ServiceProvider.GetRequiredService<AdminSeeder>();
@@ -172,7 +163,17 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
 
-app.UseExceptionHandler();
+var appVersion = Assembly.GetEntryAssembly()
+    ?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+    ?.InformationalVersion
+    ?? Assembly.GetEntryAssembly()?.GetName().Version?.ToString()
+    ?? "unknown";
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-App-Version"] = appVersion;
+    await next();
+});
 
 app.UseHttpsRedirection();
 
