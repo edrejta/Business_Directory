@@ -32,6 +32,8 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("OwnerOnly", policy => policy.RequireRole("BusinessOwner"));
 });
 
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddDistributedMemoryCache();
 
@@ -159,6 +161,8 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
+
+app.UseExceptionHandler();
 
 app.UseHttpsRedirection();
 
