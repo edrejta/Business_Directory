@@ -50,9 +50,10 @@ public sealed class BusinessesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetPublicApproved failed. search={Search}, city={City}, type={Type}", search, city, type);
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi njÃ« gabim nÃ« server." });
         }
     }
+
 
     [AllowAnonymous]
     [HttpGet("{id:guid}")]
@@ -84,7 +85,7 @@ public sealed class BusinessesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetBusinessById failed. id={BusinessId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi njÃ« gabim nÃ« server." });
         }
     }
 
@@ -106,7 +107,7 @@ public sealed class BusinessesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "CreateBusiness failed.");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi njÃ« gabim nÃ« server." });
         }
     }
 
@@ -139,7 +140,7 @@ public sealed class BusinessesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "UpdateBusiness failed. id={BusinessId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi njÃ« gabim nÃ« server." });
         }
     }
 
@@ -161,7 +162,7 @@ public sealed class BusinessesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetMine failed. status={Status}", status);
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi njÃ« gabim nÃ« server." });
         }
     }
 
@@ -186,7 +187,7 @@ public sealed class BusinessesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "DeleteBusiness failed. id={BusinessId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi një gabim në server." });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ndodhi njÃ« gabim nÃ« server." });
         }
     }
 

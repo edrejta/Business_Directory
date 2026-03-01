@@ -32,6 +32,8 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("OwnerOnly", policy => policy.RequireRole("BusinessOwner"));
 });
 
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddDistributedMemoryCache();
 
@@ -84,6 +86,7 @@ if (!string.IsNullOrWhiteSpace(redisConnectionString))
 }
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+Console.WriteLine("DEBUG: resolved DefaultConnection = '{0}'", connectionString);
 if (string.IsNullOrWhiteSpace(connectionString))
 {
     throw new InvalidOperationException(
@@ -147,6 +150,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// add a simple response header for all requests; no client action is required
+// to "use" it, but it allows ops to spot the API version without changing
+// frontend code.
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-App-Version"] = "1.0";
+    await next();
+});
+
 using (var scope = app.Services.CreateScope())
 {
     var adminSeeder = scope.ServiceProvider.GetRequiredService<AdminSeeder>();
@@ -159,6 +171,8 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
+
+app.UseExceptionHandler();
 
 app.UseHttpsRedirection();
 
