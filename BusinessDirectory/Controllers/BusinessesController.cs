@@ -44,6 +44,7 @@ public sealed class BusinessesController : ControllerBase
         return Ok(publicResults);
     }
 
+
     [AllowAnonymous]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<BusinessPublicDto>> GetBusinessById(Guid id, CancellationToken cancellationToken)
@@ -144,4 +145,5 @@ public sealed class BusinessesController : ControllerBase
     {
         return User.GetActorUserId();
     }
+
 }
