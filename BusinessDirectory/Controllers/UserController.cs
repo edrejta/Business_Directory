@@ -1,0 +1,60 @@
+﻿using BusinessDirectory.Application.Dtos.User;
+using BusinessDirectory.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace BusinessDirectory.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public sealed class UsersController : ControllerBase
+{
+    private readonly IUserService _users;
+
+    public UsersController(IUserService users)
+    {
+        _users = users;
+    }
+
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<IActionResult> Me(CancellationToken ct)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var user = await _users.GetMeAsync(userId.Value, ct);
+        return user is null ? NotFound() : Ok(user);
+    }
+
+    [HttpGet("{id:guid}")]
+    [Authorize]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
+    {
+        var user = await _users.GetByIdAsync(id, ct);
+        return user is null ? NotFound() : Ok(user);
+    }
+
+    [HttpPut("{id:guid}")]
+    [Authorize]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UserUpdateDto dto, CancellationToken ct)
+    {
+        var currentUserId = GetUserId();
+        if (currentUserId is null)
+            return Unauthorized();
+
+        var (notFound, forbid, error, result) = await _users.UpdateAsync(id, currentUserId.Value, dto, ct);
+
+        if (notFound) return NotFound();
+        if (forbid) return Forbid();
+        if (!string.IsNullOrWhiteSpace(error)) return BadRequest(new { message = error });
+
+        return Ok(result);
+    }
+
+    private Guid? GetUserId()
+    {
+        return User.GetActorUserId();
+    }
+}

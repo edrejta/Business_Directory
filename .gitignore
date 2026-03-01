@@ -6,3 +6,8 @@
 *.csproj.user
 *.pdb
 *.dll
+
+.idea/
+**/bin/
+**/obj/
+*.db
